@@ -273,12 +273,3 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Performance monitoring
-.nyc_output/
-coverage/
-
-# Optional: Uncomment if you want to ignore test files
-# test/
-# **/*.test.js
-# **/*.spec.js 
