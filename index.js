@@ -1,15 +1,13 @@
 // index.js
-import bot from "./config/bot.js";
 
 // Commands
 import "./commands/start.js";
 import "./commands/subscribe.js";
 import "./commands/unsubscribe.js";
-import "./commands/test.js";
-import "./commands/admin.js"; 
+import "./commands/admin.js";
+import "./commands/miniapp.js"; 
 
-// Utils
-import { broadcast } from "./utils/broadcast.js";
+
 
 // Listener
 import { startDomaListeners, stopDomaListeners } from "./listeners/domaEvents.js";

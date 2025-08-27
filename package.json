@@ -4,7 +4,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:miniapp": "node test/test_miniapp_integration.js",
+    "test:bot": "node test/test_bot_integration.js",
+    "test:events": "node test/test_manual_events.js",
+    "test:expiration": "node test/test_expiration_manual.js"
   },
   "keywords": [],
   "author": "",

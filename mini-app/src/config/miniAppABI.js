@@ -150,7 +150,57 @@ export const OWNERSHIP_TOKEN_ABI = [
       "name": "Transfer",
       "type": "event"
     },
-    // Functions
+    // Essential Functions for Mini App
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "registrarIanaId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string",
+              "name": "sld",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "tld",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "expiresAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct OwnershipToken.OwnershipTokenMintInfo[]",
+          "name": "names",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "string",
+          "name": "correlationId",
+          "type": "string"
+        }
+      ],
+      "name": "bulkMint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
     {
       "inputs": [
         {
@@ -265,6 +315,90 @@ export const OWNERSHIP_TOKEN_ABI = [
       "name": "burn",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    // Additional utility functions
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "name": "exists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "name": "registrarOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "name",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "symbol",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "tokenURI",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ];

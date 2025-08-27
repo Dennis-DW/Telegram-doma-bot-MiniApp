@@ -1,6 +1,6 @@
-# Doma Bot
+# Doma Bot & Mini App
 
-A Telegram bot that monitors Doma domain events and broadcasts notifications to subscribers.
+A Telegram bot with integrated Mini App that monitors Doma domain events and provides domain management capabilities.
 
 ## Features
 
@@ -10,6 +10,9 @@ A Telegram bot that monitors Doma domain events and broadcasts notifications to 
 - ⚠️ **Domain Expiration Alerts**: Special handling for expired domains with "Buy Now" links
 - 🔐 **Admin Commands**: Admin-only broadcast functionality
 - 💾 **Event Storage**: Persists events and subscriber data
+- 📱 **Mini App Integration**: Full domain management interface within Telegram
+- 🔗 **Wallet Connection**: Secure wallet integration for blockchain transactions
+- ✨ **Domain Management**: Mint, renew, transfer, lock, and burn domains
 
 ## Event Types Supported
 
@@ -36,18 +39,25 @@ OWNERSHIP_TOKEN_ADDRESS=0xYourOwnershipTokenContractAddress
 # Frontend URLs
 DOMA_EXPLORER_URL=https://explorer.doma.com
 FRONTEND_URL=https://frontend.com
+
+# Mini App Configuration
+MINI_APP_URL=https://your-mini-app-domain.com
 ```
 
 ## Commands
 
-- `/start` - Welcome message
+- `/start` - Welcome message with Mini App access
+- `/miniapp` - Open the Doma Manager Mini App
 - `/subscribe` - Subscribe to domain event alerts
 - `/unsubscribe` - Unsubscribe from alerts
+- `/status` - Check subscription status
+- `/help` - Show help information
 - `/test` - Test message
 - `/broadcast <message>` - Admin-only broadcast command
 
 ## Installation
 
+### Bot Setup
 1. Install dependencies:
 ```bash
 npm install
@@ -59,6 +69,26 @@ npm install
 ```bash
 node index.js
 ```
+
+### Mini App Setup
+1. Navigate to the Mini App directory:
+```bash
+cd mini-app
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Build the Mini App:
+```bash
+npm run build
+```
+
+4. Deploy the built files to your web server
+
+5. Update the `MINI_APP_URL` in your `.env` file
 
 ## Testing
 
@@ -89,6 +119,31 @@ node test/test_domain_expiration.js
 - Proper async/await usage
 - Better separation of concerns between modules
 
+## Mini App Integration
+
+The bot integrates with a React-based Telegram Mini App that provides:
+
+### Features
+- **Wallet Connection**: Secure connection to user's wallet
+- **Domain Management**: Full CRUD operations for domains
+- **Real-time Updates**: Live transaction status and notifications
+- **User-friendly Interface**: Modern, responsive design
+
+### Communication Flow
+1. User opens Mini App from bot
+2. Mini App connects to user's wallet
+3. User performs domain operations
+4. Mini App sends data back to bot via `telegram.WebApp.sendData()`
+5. Bot processes data and broadcasts notifications
+
+### Mini App Actions
+- `wallet_connected` - Wallet successfully connected
+- `domain_minted` - New domain created
+- `domain_renewed` - Domain renewal completed
+- `lock_status_changed` - Transfer lock toggled
+- `domain_burned` - Domain permanently deleted
+- `error` - Error occurred during operation
+
 ## Architecture
 
 ```
@@ -99,6 +154,14 @@ doma-bot/
 ├── utils/          # Utilities (broadcast, storage)
 ├── abis/           # Contract ABIs
 ├── test/           # Test files
+├── mini-app/       # Telegram Mini App (React/Vite)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/          # Reusable UI components
+│   │   │   └── sections/    # Page sections
+│   │   ├── config/          # Blockchain configuration
+│   │   └── utils/           # Telegram utilities
+│   └── dist/                # Built Mini App files
 └── index.js        # Main entry point
 ```
 
