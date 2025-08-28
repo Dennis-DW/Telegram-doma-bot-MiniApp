@@ -1,27 +1,12 @@
 // commands/admin.js
-import bot from "../config/bot.js";
-import { broadcast } from "../utils/broadcast.js";
-import dotenv from "dotenv";
+// This file now serves as a simple entry point to the modular admin system
+// The actual implementation is in the commands/admin/ folder
 
-dotenv.config();
+import './admin/index.js';
 
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+console.log("📝 Note: Admin commands are now modularized in the commands/admin/ folder");
+console.log("🔧 The main admin logic has been moved to commands/admin/index.js");
+console.log("🚀 Loading admin commands from commands/admin/index.js...");
 
-bot.onText(/^\/broadcast (.+)/, async (msg, match) => {
-  const chatId = msg.chat.id.toString();
-  const message = match[1]; // everything after /broadcast
-
-  // Restrict command to admin only
-  if (chatId !== ADMIN_CHAT_ID) {
-    await bot.sendMessage(chatId, "⛔ You are not authorized to use this command.");
-    return;
-  }
-
-  try {
-    await broadcast(`📢 Admin Broadcast:\n\n${message}`, null);
-    await bot.sendMessage(chatId, "✅ Broadcast sent successfully!");
-  } catch (error) {
-    console.error("❌ Broadcast error:", error.message);
-    await bot.sendMessage(chatId, "⚠️ Failed to broadcast message.");
-  }
-});
+// Export the isAdmin function for backward compatibility
+export { isAdmin } from './admin/index.js';

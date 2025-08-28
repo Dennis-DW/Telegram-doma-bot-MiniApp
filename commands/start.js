@@ -7,44 +7,39 @@ dotenv.config();
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   
-  const welcomeMessage = `👋 Welcome to Doma Alerts Bot!
+  const welcomeMessage = `👋 Welcome to Doma Event Notifications!
 
-🏠 **Doma Domain Manager** - Your gateway to blockchain domain management.
+📢 **Doma Domain Event Tracker** - Your gateway to real-time domain event notifications.
 
 **What I can do:**
 • 🔔 Send real-time domain event notifications
-• 📱 Provide a Mini App for domain management
-• ⚠️ Alert you about domain expirations
-• 🔗 Track domain transfers and renewals
+• 📊 Track domain activities across the network
+• ⚠️ Alert you about important domain events
+• 🔗 Monitor domain transfers and renewals
+
+**Events I Track:**
+• ✨ New domain minting
+• 🔄 Domain renewals
+• 🔥 Domain burning
+• 🔒 Domain locking/unlocking
+• 🏢 Registrar changes
+• 📝 Metadata updates
 
 **Commands:**
 • /subscribe - Get domain event alerts
 • /unsubscribe - Stop receiving alerts
-• /miniapp - Open the Doma Manager Mini App
-• /help - Show this help message
-
-**Mini App Features:**
-• ✨ Mint new domains
-• 🔄 Renew existing domains
-• 🔐 Lock/unlock transfers
-• 🔥 Burn domains
-• 📊 View your domain portfolio`;
+• /events - Manage event notifications
+• /help - Show this help message`;
 
   const keyboard = {
     inline_keyboard: [
       [
-        {
-          text: "🚀 Open Mini App",
-          web_app: { url:process.env.MINI_APP_URL}
-        }
-      ],
-      [
-        { text: "📋 Subscribe to Alerts", callback_data: "subscribe" },
+        { text: "📋 Subscribe to Events", callback_data: "subscribe" },
         { text: "❌ Unsubscribe", callback_data: "unsubscribe" }
       ],
       [
-        { text: "ℹ️ Help", callback_data: "help" },
-        { text: "📊 Status", callback_data: "status" }
+        { text: "📊 View Status", callback_data: "status" },
+        { text: "❓ Help", callback_data: "help" }
       ]
     ]
   };
@@ -74,8 +69,8 @@ bot.on('callback_query', async (query) => {
         // Import and call subscribe logic
         const { addSubscriber } = await import('../utils/storage.js');
         await addSubscriber(chatId);
-        await bot.answerCallbackQuery(query.id, { text: "✅ Subscribed to alerts!" });
-        await bot.editMessageText("✅ You are now subscribed to Doma alerts!", {
+        await bot.answerCallbackQuery(query.id, { text: "✅ Subscribed to event alerts!" });
+        await bot.editMessageText("✅ You are now subscribed to Doma event notifications!", {
           chat_id: chatId,
           message_id: query.message.message_id
         });
@@ -85,8 +80,8 @@ bot.on('callback_query', async (query) => {
         // Import and call unsubscribe logic
         const { removeSubscriber } = await import('../utils/storage.js');
         await removeSubscriber(chatId);
-        await bot.answerCallbackQuery(query.id, { text: "🚫 Unsubscribed from alerts!" });
-        await bot.editMessageText("🚫 You have unsubscribed from Doma alerts.", {
+        await bot.answerCallbackQuery(query.id, { text: "🚫 Unsubscribed from event alerts!" });
+        await bot.editMessageText("🚫 You have unsubscribed from Doma event notifications.", {
           chat_id: chatId,
           message_id: query.message.message_id
         });
@@ -97,11 +92,11 @@ bot.on('callback_query', async (query) => {
         await bot.sendMessage(chatId, 
           "📚 **Help & Commands**\n\n" +
           "• /start - Show main menu\n" +
-          "• /subscribe - Get domain alerts\n" +
-          "• /unsubscribe - Stop alerts\n" +
-          "• /miniapp - Open Mini App\n" +
+          "• /subscribe - Get domain event alerts\n" +
+          "• /unsubscribe - Stop event alerts\n" +
+          "• /events - Manage event notifications\n" +
           "• /status - Check subscription status\n\n" +
-          "The Mini App allows you to manage your domains directly from Telegram!",
+          "The bot monitors all domain events on the Doma network!",
           { parse_mode: "Markdown" }
         );
         break;

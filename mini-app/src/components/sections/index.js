@@ -1,18 +1,6 @@
-export { default as DashboardSection } from './DashboardSection';
-export { default as DomainManageSection } from './DomainManageSection';
-export { default as DomainMintSection } from './DomainMintSection';
+// Export all section components
 export { default as HeaderSection } from './HeaderSection';
+export { default as EventDashboardSection } from './EventDashboardSection';
+export { default as EventListSection } from './EventListSection';
+export { default as NotificationSettingsSection } from './NotificationSettingsSection';
 export { default as LoadingSection } from './LoadingSection';
-export { default as WalletConnectSection } from './WalletConnectSection';
-
-// Domain Minting Components
-export * from './domainMinting';
-
-// Dashboard Components
-export * from './dashboard';
-
-// Domain Management Components
-export * from './domainManage';
-
-// Wallet Connection Components
-export * from './walletConnect'; 

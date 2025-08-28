@@ -1,4 +1,4 @@
-// config/web3.js
+// config/web3.js - Event listening with HTTP provider
 import Web3 from "web3";
 import dotenv from "dotenv";
 
@@ -11,7 +11,7 @@ if (!domaRpcUrl) {
   throw new Error("❌ Missing DOMA_RPC_URL in .env");
 }
 
-// Use WebSocket provider (better for listening to events)
-export const web3 = new Web3(new Web3.providers.WebsocketProvider(domaRpcUrl));
+// Use HTTP provider for event listening (will use polling)
+export const web3 = new Web3(new Web3.providers.HttpProvider(domaRpcUrl));
 
-console.log("✅ Connected to Doma Testnet");
+console.log("✅ Connected to Doma Testnet for event listening (HTTP polling)"); 

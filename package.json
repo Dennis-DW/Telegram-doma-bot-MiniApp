@@ -1,23 +1,36 @@
 {
   "name": "doma-bot",
   "version": "1.0.0",
+  "description": "Doma blockchain event notification bot with mini-app",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:miniapp": "node test/test_miniapp_integration.js",
-    "test:bot": "node test/test_bot_integration.js",
-    "test:events": "node test/test_manual_events.js",
-    "test:expiration": "node test/test_expiration_manual.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "api": "node api-server.js",
+    "dev:api": "nodemon api-server.js",
+    "mini-app": "cd mini-app && npm run dev",
+    "build": "cd mini-app && npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "ethers": "^6.15.0",
-    "node-telegram-bot-api": "^0.66.0",
-    "web3": "^4.16.0"
-  }
+    "ethers": "^6.11.1",
+    "express": "^4.21.2",
+    "node-telegram-bot-api": "^0.64.0",
+    "web3": "^4.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "blockchain",
+    "doma",
+    "events",
+    "notifications"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }

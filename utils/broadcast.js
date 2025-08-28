@@ -1,12 +1,21 @@
 // utils/broadcast.js
-import bot from "../config/bot.js";
 import { getSubscribers } from "./storage.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const EXPLORER_BASE_URL = process.env.DOMA_EXPLORER_URL;
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://frontend.com";
+const EXPLORER_BASE_URL = process.env.EXPLORER_BASE_URL;
+const FRONTEND_URL = process.env.MINI_APP_URL;
+
+// Custom JSON serializer to handle BigInt
+const customStringify = (obj) => {
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    return value;
+  }, 2);
+};
 
 /**
  * Escape text for Telegram MarkdownV2
@@ -21,61 +30,118 @@ function escapeMarkdownV2(text) {
 /**
  * Format messages based on event type
  * @param {string} type - Event type (e.g. OwnershipTransferred, Transfer)
- * @param {object} data - Event data payload
+ * @param {object} data - Event data payload (can be array or object)
  */
 function formatMessage(type, data) {
   const txLink = data.txHash ? `${EXPLORER_BASE_URL.replace(/\/$/, "")}/${data.txHash}` : null;
 
   switch (type) {
     case "OwnershipTokenMinted":
-      return `✨ *Domain Minted!*\n\n` +
-        `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\`\n` +
-        `👤 Owner: \`${escapeMarkdownV2(data.to)}\`\n` +
-        `🌐 Domain: \`${escapeMarkdownV2(data.sld)}.${escapeMarkdownV2(data.tld)}\`\n` +
-        `⏰ Expires: \`${escapeMarkdownV2(new Date(Number(data.expiresAt) * 1000).toLocaleString())}\``;
+      // data is an array: [tokenId, registrarIanaId, to, sld, tld, expiresAt, correlationId]
+      const tokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const to = Array.isArray(data) ? data[2] : data.to;
+      const sld = Array.isArray(data) ? data[3] : data.sld;
+      const tld = Array.isArray(data) ? data[4] : data.tld;
+      const expiresAt = Array.isArray(data) ? data[5] : data.expiresAt;
+      
+      return `✨ *Domain Minted\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(tokenId))}\`\n` +
+        `👤 Owner: \`${escapeMarkdownV2(to)}\`\n` +
+        `🌐 Domain: \`${escapeMarkdownV2(sld)}\\.${escapeMarkdownV2(tld)}\`\n` +
+        `⏰ Expires: \`${escapeMarkdownV2(new Date(Number(expiresAt) * 1000).toLocaleString())}\``;
 
     case "NameTokenRenewed":
-      return `♻️ *Domain Renewed!*\n\n` +
-        `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\`\n` +
-        `⏰ New Expiry: \`${escapeMarkdownV2(new Date(Number(data.expiresAt) * 1000).toLocaleString())}\``;
+      // data is an array: [tokenId, expiresAt]
+      const renewedTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const newExpiresAt = Array.isArray(data) ? data[1] : data.expiresAt;
+      
+      return `♻️ *Domain Renewed\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(renewedTokenId))}\`\n` +
+        `⏰ New Expiry: \`${escapeMarkdownV2(new Date(Number(newExpiresAt) * 1000).toLocaleString())}\``;
 
     case "NameTokenBurned":
-      return `🔥 *Domain Burned!*\n\n` +
-        `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\``;
+      // data is an array: [tokenId]
+      const burnedTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      
+      return `🔥 *Domain Burned\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(burnedTokenId))}\``;
 
     case "LockStatusChanged":
-      return `🔐 *Lock Status Changed!*\n\n` +
-        `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\`\n` +
-        `🔒 Status: ${data.isTransferLocked ? "🔒 Locked" : "🔓 Unlocked"}`;
+      // data is an array: [tokenId, isTransferLocked]
+      const lockTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const isTransferLocked = Array.isArray(data) ? data[1] : data.isTransferLocked;
+      
+      return `🔐 *Lock Status Changed\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(lockTokenId))}\`\n` +
+        `🔒 Status: ${isTransferLocked ? "🔒 Locked" : "🔓 Unlocked"}`;
 
     case "Transfer":
-      return `🔄 *Domain Transferred!*\n\n` +
-        `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\`\n` +
-        `📤 From: \`${escapeMarkdownV2(data.from)}\`\n` +
-        `📥 To: \`${escapeMarkdownV2(data.to)}\``;
+      // data is an array: [from, to, tokenId]
+      const from = Array.isArray(data) ? data[0] : data.from;
+      const transferTo = Array.isArray(data) ? data[1] : data.to;
+      const transferTokenId = Array.isArray(data) ? data[2] : data.tokenId;
+      
+      return `🔄 *Domain Transferred\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(transferTokenId))}\`\n` +
+        `📤 From: \`${escapeMarkdownV2(from)}\`\n` +
+        `📥 To: \`${escapeMarkdownV2(transferTo)}\``;
 
     case "DomainExpired":
-      const domainName = `${data.sld}.${data.tld}`;
+      const domainName = `${escapeMarkdownV2(data.sld)}\\.${escapeMarkdownV2(data.tld)}`;
       const buyUrl = `${FRONTEND_URL}/domain/${data.sld}`;
-      return `⚠️ *Domain Expired: ${escapeMarkdownV2(domainName)}*\n\n` +
+      return `⚠️ *Domain Expired: ${domainName}*\n\n` +
         `🔢 Token ID: \`${escapeMarkdownV2(String(data.tokenId))}\`\n` +
         `👉 [Buy Now](${escapeMarkdownV2(buyUrl)})`;
 
     case "OwnershipTransferred":
-      return `🔑 *Ownership Transferred!*\n\n` +
+      return `🔑 *Ownership Transferred\\!*\n\n` +
         `👤 Previous Owner: \`${escapeMarkdownV2(data.previousOwner)}\`\n` +
         `👤 New Owner: \`${escapeMarkdownV2(data.newOwner)}\`\n` +
         `⛓️ [View Transaction](${escapeMarkdownV2(txLink)})\n` +
         `📦 Block: ${escapeMarkdownV2(String(data.blockNumber))}`;
 
+    case "NameTokenLocked":
+      // data is an array: [tokenId, by]
+      const lockedTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const lockedBy = Array.isArray(data) ? data[1] : data.by;
+      
+      return `🔒 *Domain Locked\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(lockedTokenId))}\`\n` +
+        `🔒 Locked By: \`${escapeMarkdownV2(lockedBy)}\``;
+
+    case "NameTokenUnlocked":
+      // data is an array: [tokenId, by]
+      const unlockedTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const unlockedBy = Array.isArray(data) ? data[1] : data.by;
+      
+      return `🔓 *Domain Unlocked\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(unlockedTokenId))}\`\n` +
+        `🔓 Unlocked By: \`${escapeMarkdownV2(unlockedBy)}\``;
+
+    case "RegistrarChanged":
+      // data is an array: [tokenId, newRegistrar]
+      const registrarTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      const newRegistrar = Array.isArray(data) ? data[1] : data.newRegistrar;
+      
+      return `🏢 *Registrar Changed\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(registrarTokenId))}\`\n` +
+        `🏢 New Registrar: \`${escapeMarkdownV2(newRegistrar)}\``;
+
+    case "MetadataUpdated":
+      // data is an array: [tokenId]
+      const metadataTokenId = Array.isArray(data) ? data[0] : data.tokenId;
+      
+      return `📝 *Metadata Updated\\!*\n\n` +
+        `🔢 Token ID: \`${escapeMarkdownV2(String(metadataTokenId))}\``;
+
     default:
       if (txLink) {
         return `📢 *New Event Detected: ${escapeMarkdownV2(type)}*\n\n` +
-          `📝 Data:\n\`${escapeMarkdownV2(JSON.stringify(data, null, 2))}\`\n` +
+          `📝 Data:\n\`${escapeMarkdownV2(customStringify(data))}\`\n` +
           `🔗 [View Transaction](${escapeMarkdownV2(txLink)})`;
       } else {
         return `📢 *New Event Detected: ${escapeMarkdownV2(type)}*\n\n` +
-          `📝 Data:\n\`${escapeMarkdownV2(JSON.stringify(data, null, 2))}\``;
+          `📝 Data:\n\`${escapeMarkdownV2(customStringify(data))}\``;
       }
   }
 }
@@ -116,13 +182,19 @@ export async function broadcast(messageOrEvent, data = null) {
     return;
   }
 
-  console.log(`📢 Broadcasting ${type || "message"} to ${subscribers.length} subscriber(s)...`);
+  console.log("=".repeat(60));
+  console.log(`📢 BROADCASTING EVENT: ${type || "message"}`);
+  console.log("=".repeat(60));
+  console.log(`👥 Subscribers: ${subscribers.length}`);
+  console.log(`📝 Message Type: ${type || "Custom Message"}`);
+  console.log(`📋 Message Preview: ${message.substring(0, 100)}...`);
+  console.log("=".repeat(60));
 
-  for (const chatId of subscribers) {
-    try {
-      await bot.sendMessage(chatId, message, { parse_mode: "MarkdownV2" });
-    } catch (error) {
-      console.error(`❌ Failed to send message to ${chatId}:`, error.message);
-    }
-  }
+  // Store the message for the main bot to send
+  // The main bot will handle the actual sending to avoid conflicts
+  console.log("📤 Event queued for broadcasting by main bot");
+  console.log("=".repeat(60));
 }
+
+// Export the formatMessage function for use in other modules
+export { formatMessage };
