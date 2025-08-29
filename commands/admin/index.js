@@ -7,7 +7,8 @@ import {
   handleAdminCallback,
   handleStatsCommand,
   handleCleanupCommand,
-  handleQueueCommand
+  handleQueueCommand,
+  handleBroadcastCommand
 } from "./handlers/commandHandler.js";
 
 // Validate admin configuration on startup
@@ -24,6 +25,7 @@ bot.onText(new RegExp(`^${ADMIN_CONFIG.COMMANDS.ADMIN}$`), handleAdminCommand);
 bot.onText(new RegExp(`^${ADMIN_CONFIG.COMMANDS.STATS}$`), handleStatsCommand);
 bot.onText(new RegExp(`^${ADMIN_CONFIG.COMMANDS.CLEANUP}$`), handleCleanupCommand);
 bot.onText(new RegExp(`^${ADMIN_CONFIG.COMMANDS.QUEUE}$`), handleQueueCommand);
+bot.onText(new RegExp(`^${ADMIN_CONFIG.COMMANDS.BROADCAST}(\\s+.*)?$`), handleBroadcastCommand);
 
 // Register callback query handler for admin actions
 bot.on('callback_query', async (query) => {

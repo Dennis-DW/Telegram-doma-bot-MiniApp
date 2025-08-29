@@ -6,6 +6,7 @@ import {
   subscribeUser,
   unsubscribeUser,
   updateSubscriptionSettings,
+  getUserSettings,
   getAllSubscribers
 } from '../controllers/subscriptionController.js';
 
@@ -22,6 +23,9 @@ router.post('/unsubscribe', unsubscribeUser);
 
 // Update subscription settings
 router.put('/settings', validateSubscriptionSettings, updateSubscriptionSettings);
+
+// Get user settings
+router.get('/settings', getUserSettings);
 
 // Get all subscribers (admin only)
 router.get('/subscribers', getAllSubscribers);

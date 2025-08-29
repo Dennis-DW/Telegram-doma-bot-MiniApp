@@ -97,11 +97,16 @@ class ApiService {
   }
 
   // Update notification settings
-  async updateNotificationSettings(settings) {
+  async updateNotificationSettings(telegramId, settings) {
     return this.request('/api/subscription/settings', {
       method: 'PUT',
-      body: JSON.stringify({ settings }),
+      body: JSON.stringify({ telegramId, settings }),
     });
+  }
+
+  // Get user settings
+  async getUserSettings(telegramId) {
+    return this.request(`/api/subscription/settings?telegramId=${telegramId}`);
   }
 
   // Real-time event streaming

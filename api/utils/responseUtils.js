@@ -27,22 +27,7 @@ export const sendErrorResponse = (res, message, statusCode = 500, error = null) 
   res.status(statusCode).json(response);
 };
 
-// Pagination response helper
-export const sendPaginatedResponse = (res, data, page = 1, limit = 10, total = 0) => {
-  res.json({
-    success: true,
-    data,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      pages: Math.ceil(total / limit),
-      hasNext: page * limit < total,
-      hasPrev: page > 1
-    },
-    timestamp: new Date().toISOString()
-  });
-};
+
 
 // Health check response
 export const sendHealthResponse = (res) => {
@@ -58,6 +43,5 @@ export const sendHealthResponse = (res) => {
 export default {
   sendSuccessResponse,
   sendErrorResponse,
-  sendPaginatedResponse,
   sendHealthResponse
 }; 

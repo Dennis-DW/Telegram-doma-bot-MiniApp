@@ -1,13 +1,16 @@
 // mini-app/src/hooks/useEvents.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api';
+import telegramApp from '../utils/telegram';
 
 export const useEvents = (eventType = null, limit = 50, enableRealtime = false) => {
   const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [userSettings, setUserSettings] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -17,6 +20,85 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
   });
 
   const eventSourceRef = useRef(null);
+
+  // Get Telegram user ID
+  const getTelegramId = useCallback(() => {
+    const user = telegramApp.getUser();
+    return user?.id || null;
+  }, []);
+
+  // Fetch user settings
+  const fetchUserSettings = useCallback(async () => {
+    try {
+      const telegramId = getTelegramId();
+      if (!telegramId) {
+        console.log('No Telegram ID available, using default settings');
+        return;
+      }
+
+      const data = await apiService.getUserSettings(telegramId);
+      const settings = data.data || data;
+      setUserSettings(settings);
+      console.log('User settings loaded:', settings);
+    } catch (err) {
+      console.error('Failed to fetch user settings:', err);
+      // Use default settings if fetch fails
+      setUserSettings({
+        notifications: true,
+        eventTypes: {
+          minting: true,
+          transfers: true,
+          renewals: true,
+          burning: true,
+          locks: true,
+          registrar: true,
+          metadata: true,
+          locked: true,
+          unlocked: true,
+          expired: true
+        },
+        frequency: 'realtime'
+      });
+    }
+  }, [getTelegramId]);
+
+  // Filter events based on user settings
+  const filterEventsBySettings = useCallback((eventsToFilter, settings) => {
+    if (!settings || !settings.eventTypes) {
+      console.log('No user settings available, showing all events');
+      return eventsToFilter;
+    }
+
+    const eventTypeMapping = {
+      'OwnershipTokenMinted': 'minting',
+      'Transfer': 'transfers',
+      'NameTokenRenewed': 'renewals',
+      'NameTokenBurned': 'burning',
+      'LockStatusChanged': 'locks',
+      'RegistrarChanged': 'registrar',
+      'MetadataUpdated': 'metadata',
+      'DomainLocked': 'locked',
+      'DomainUnlocked': 'unlocked',
+      'DomainExpired': 'expired'
+    };
+
+    const filtered = eventsToFilter.filter(event => {
+      const mappedType = eventTypeMapping[event.type];
+      if (!mappedType) {
+        console.log(`Unknown event type: ${event.type}, showing by default`);
+        return true; // Show unknown event types by default
+      }
+      
+      const isEnabled = settings.eventTypes[mappedType];
+      if (!isEnabled) {
+        console.log(`Filtering out event type: ${event.type} (${mappedType})`);
+      }
+      return isEnabled;
+    });
+
+    console.log(`Filtered ${eventsToFilter.length} events to ${filtered.length} based on user settings`);
+    return filtered;
+  }, []);
 
   const fetchEvents = useCallback(async (page = 1) => {
     try {
@@ -38,6 +120,14 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
       
       setEvents(formattedEvents);
       
+      // Apply user settings filter
+      if (userSettings) {
+        const filtered = filterEventsBySettings(formattedEvents, userSettings);
+        setFilteredEvents(filtered);
+      } else {
+        setFilteredEvents(formattedEvents);
+      }
+      
       // Update pagination if available
       if (data.pagination) {
         setPagination(data.pagination);
@@ -46,10 +136,11 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
       console.error('Failed to fetch events:', err);
       setError(err.message);
       setEvents([]); // Set empty array instead of mock data
+      setFilteredEvents([]);
     } finally {
       setLoading(false);
     }
-  }, [eventType, limit]);
+  }, [eventType, limit, userSettings, filterEventsBySettings]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -94,6 +185,16 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
     const formattedEvent = apiService.formatEvent(eventData);
     setEvents(prevEvents => [formattedEvent, ...prevEvents.slice(0, limit - 1)]);
     
+    // Apply filter to new event
+    if (userSettings) {
+      const shouldShow = filterEventsBySettings([formattedEvent], userSettings).length > 0;
+      if (shouldShow) {
+        setFilteredEvents(prevFiltered => [formattedEvent, ...prevFiltered.slice(0, limit - 1)]);
+      }
+    } else {
+      setFilteredEvents(prevFiltered => [formattedEvent, ...prevFiltered.slice(0, limit - 1)]);
+    }
+    
     // Update stats if it's a new event
     if (stats) {
       setStats(prevStats => ({
@@ -106,7 +207,7 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
         }
       }));
     }
-  }, [limit, stats]);
+  }, [limit, stats, userSettings, filterEventsBySettings]);
 
   const handleRealtimeError = useCallback((error) => {
     console.error('Real-time connection error:', error);
@@ -167,18 +268,37 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
   const updateSettings = useCallback(async (settings) => {
     try {
       const result = await apiService.updateNotificationSettings(settings);
+      // Refresh user settings after update
+      await fetchUserSettings();
       return result;
     } catch (error) {
       console.error('Failed to update settings:', error);
       throw error;
     }
-  }, []);
+  }, [fetchUserSettings]);
+
+  // Refresh user settings and re-filter events
+  const refreshUserSettings = useCallback(async () => {
+    await fetchUserSettings();
+  }, [fetchUserSettings]);
+
+  useEffect(() => {
+    fetchUserSettings();
+  }, [fetchUserSettings]);
 
   useEffect(() => {
     fetchEvents();
     fetchStats();
     fetchSubscriptionStatus();
   }, [fetchEvents, fetchStats, fetchSubscriptionStatus]);
+
+  // Re-filter events when user settings change
+  useEffect(() => {
+    if (userSettings && events.length > 0) {
+      const filtered = filterEventsBySettings(events, userSettings);
+      setFilteredEvents(filtered);
+    }
+  }, [userSettings, events, filterEventsBySettings]);
 
   useEffect(() => {
     if (enableRealtime) {
@@ -193,11 +313,13 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
   }, [enableRealtime, startRealtimeUpdates, stopRealtimeUpdates]);
 
   return {
-    events,
+    events: filteredEvents, // Return filtered events instead of all events
+    allEvents: events, // Keep access to all events if needed
     loading,
     error,
     stats,
     subscriptionStatus,
+    userSettings,
     isConnected,
     pagination,
     refreshEvents,
@@ -206,6 +328,7 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
     subscribe,
     unsubscribe,
     updateSettings,
+    refreshUserSettings,
     startRealtimeUpdates,
     stopRealtimeUpdates
   };

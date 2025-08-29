@@ -1,24 +1,35 @@
 // api/controllers/eventController.js
-import { getEventStats as getEventStatsFromStorage } from '../../utils/storage.js';
 import { 
-  getEventsWithPagination, 
-  getRecentEvents as fetchRecentEvents, 
-  formatEventsForAPI 
-} from '../utils/eventUtils.js';
+  getEventStats as getEventStatsFromStorage,
+  getEvents,
+  getEventsByType as getEventsByTypeFromStorage,
+  getRecentEvents as getRecentEventsFromStorage
+} from '../../utils/storage.js';
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseUtils.js';
 import { API_CONFIG } from '../config/index.js';
 
-// Broadcast event to all connected streaming clients
+
 
 // Get all events
 export const getAllEvents = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || API_CONFIG.DEFAULT_EVENT_LIMIT;
     const page = parseInt(req.query.page) || 1;
-    const events = getEventsWithPagination({ limit, page });
-    const formattedEvents = formatEventsForAPI(events);
     
-    sendSuccessResponse(res, { events: formattedEvents }, 'Events retrieved successfully');
+    const allEvents = getEvents();
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const events = allEvents.slice(startIndex, endIndex);
+    
+    sendSuccessResponse(res, { 
+      events: events,
+      pagination: {
+        page,
+        limit,
+        total: allEvents.length,
+        totalPages: Math.ceil(allEvents.length / limit)
+      }
+    }, 'Events retrieved successfully');
   } catch (error) {
     console.error('Error fetching events:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.FETCH_EVENTS, 500, error);
@@ -32,13 +43,27 @@ export const getEventsByType = async (req, res) => {
     const limit = parseInt(req.query.limit) || API_CONFIG.DEFAULT_EVENT_LIMIT;
     const page = parseInt(req.query.page) || 1;
     
-    const events = getEventsWithPagination({ limit, eventType, page });
-    const formattedEvents = formatEventsForAPI(events);
+    // Validate event type
+    if (!API_CONFIG.EVENT_TYPE_MAP[eventType]) {
+      return sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.INVALID_EVENT_TYPE, 400, {
+        validTypes: Object.keys(API_CONFIG.EVENT_TYPE_MAP)
+      });
+    }
+    
+    // Map the event type to the actual blockchain event name
+    const blockchainEventType = API_CONFIG.EVENT_TYPE_MAP[eventType];
+    const result = getEventsByTypeFromStorage(blockchainEventType, limit, page);
     
     sendSuccessResponse(res, { 
-      events: formattedEvents,
+      events: result.events,
       eventType,
-      mappedType: API_CONFIG.EVENT_TYPE_MAP[eventType]
+      mappedType: blockchainEventType,
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages
+      }
     }, 'Events retrieved successfully');
   } catch (error) {
     console.error('Error fetching events by type:', error);
@@ -50,10 +75,9 @@ export const getEventsByType = async (req, res) => {
 export const getRecentEvents = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || API_CONFIG.RECENT_EVENTS_LIMIT;
-    const events = fetchRecentEvents(limit);
-    const formattedEvents = formatEventsForAPI(events);
+    const events = getRecentEventsFromStorage(limit);
     
-    sendSuccessResponse(res, { events: formattedEvents }, 'Recent events retrieved successfully');
+    sendSuccessResponse(res, { events: events }, 'Recent events retrieved successfully');
   } catch (error) {
     console.error('Error fetching recent events:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.FETCH_EVENTS, 500, error);

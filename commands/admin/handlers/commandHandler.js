@@ -6,6 +6,7 @@ import { showSystemStats, showEventHistory } from "./statsHandler.js";
 import { forceDatabaseCleanup, clearEventQueue } from "./cleanupHandler.js";
 import { showAggregatorSettings, processQueueNow, resetAggregator } from "./aggregatorHandler.js";
 import { showSubscriberList } from "./subscriberHandler.js";
+import { startBroadcast, handleDirectBroadcast } from "./broadcastHandler.js";
 
 // Main admin command handler
 export const handleAdminCommand = async (msg) => {
@@ -71,6 +72,8 @@ export const handleAdminCallback = async (query) => {
         await resetAggregator(bot, chatId);
         break;
         
+
+        
       default:
         await bot.sendMessage(chatId, "❌ Unknown admin action.");
     }
@@ -113,10 +116,30 @@ export const handleQueueCommand = async (msg) => {
   await showAggregatorSettings(bot, chatId);
 };
 
+export const handleBroadcastCommand = async (msg) => {
+  const chatId = msg.chat.id.toString();
+  
+  if (!await validateAdminAccess(bot, chatId)) {
+    return;
+  }
+
+  // Check if message contains text after /broadcast
+  const messageText = msg.text.replace(/^\/broadcast\s*/, '').trim();
+  
+  if (messageText) {
+    // Direct broadcast with message
+    await handleDirectBroadcast(bot, chatId, messageText);
+  } else {
+    // Show usage instructions
+    await startBroadcast(bot, chatId);
+  }
+};
+
 export default {
   handleAdminCommand,
   handleAdminCallback,
   handleStatsCommand,
   handleCleanupCommand,
-  handleQueueCommand
+  handleQueueCommand,
+  handleBroadcastCommand
 }; 

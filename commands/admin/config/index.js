@@ -14,7 +14,8 @@ export const ADMIN_CONFIG = {
     ADMIN: '/admin',
     STATS: '/stats',
     CLEANUP: '/cleanup',
-    QUEUE: '/queue'
+    QUEUE: '/queue',
+    BROADCAST: '/broadcast'
   },
   
   // Callback data prefixes
@@ -27,7 +28,8 @@ export const ADMIN_CONFIG = {
     SUBSCRIBERS: 'admin_subscribers',
     EVENTS: 'admin_events',
     PROCESS_QUEUE: 'admin_process_queue',
-    RESET_AGGREGATOR: 'admin_reset_aggregator'
+    RESET_AGGREGATOR: 'admin_reset_aggregator',
+
   },
   
   // Message templates
@@ -38,7 +40,8 @@ export const ADMIN_CONFIG = {
     CLEANUP_SUCCESS: "✅ Database cleanup completed successfully!",
     CLEANUP_FAILED: "❌ Database cleanup failed:",
     NO_SUBSCRIBERS: "👥 No subscribers found.",
-    QUEUE_CLEARED: "🧹 Cleared {count} events from the aggregator queue."
+    QUEUE_CLEARED: "🧹 Cleared {count} events from the aggregator queue.",
+    NO_SUBSCRIBERS_BROADCAST: "❌ No subscribers to broadcast to."
   },
   
   // Keyboard layouts
@@ -62,7 +65,8 @@ export const ADMIN_CONFIG = {
         { text: "📤 Process Queue Now", callback_data: "admin_process_queue" },
         { text: "🔄 Reset Aggregator", callback_data: "admin_reset_aggregator" }
       ]
-    ]
+    ],
+
   },
   
   // Display settings

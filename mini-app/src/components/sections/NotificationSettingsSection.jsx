@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button } from '../ui';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useEvents } from '../../hooks/useEvents';
 
 const NotificationSettingsSection = () => {
   const {
@@ -16,6 +17,8 @@ const NotificationSettingsSection = () => {
     toggleNotifications,
     refresh
   } = useSubscription();
+
+  const { refreshUserSettings } = useEvents();
 
   const [message, setMessage] = useState('');
 
@@ -35,6 +38,8 @@ const NotificationSettingsSection = () => {
   const handleSubscribe = async () => {
     try {
       await subscribe();
+      // Refresh user settings after subscription
+      await refreshUserSettings();
       setMessage('✅ Successfully subscribed to event notifications!');
     } catch (error) {
       console.error('Failed to subscribe:', error);
@@ -45,6 +50,8 @@ const NotificationSettingsSection = () => {
   const handleUnsubscribe = async () => {
     try {
       await unsubscribe();
+      // Refresh user settings after unsubscription
+      await refreshUserSettings();
       setMessage('✅ Successfully unsubscribed from event notifications.');
     } catch (error) {
       console.error('Failed to unsubscribe:', error);
@@ -55,7 +62,9 @@ const NotificationSettingsSection = () => {
   const handleSaveSettings = async () => {
     try {
       await updateSettings(settings);
-      setMessage('✅ Notification settings updated successfully!');
+      // Refresh user settings in the events hook to apply filters
+      await refreshUserSettings();
+      setMessage('✅ Notification settings updated successfully! Events will be filtered based on your preferences.');
     } catch (error) {
       console.error('Failed to update settings:', error);
       setMessage('❌ Failed to update settings. Please try again.');
@@ -111,56 +120,56 @@ const NotificationSettingsSection = () => {
   const totalSubscribers = subscriptionStatus?.totalSubscribers || 0;
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-4 sm:py-6">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link 
             to="/" 
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-3 sm:mb-4 text-sm sm:text-base"
           >
             ← Back to Dashboard
           </Link>
           
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               ⚙️ Notification Settings
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-base sm:text-lg text-gray-600 px-2">
               Manage your event notification preferences
             </p>
           </div>
         </div>
 
         {message && (
-          <Card className="p-4 mb-6">
-            <p className={`text-center ${message.includes('✅') ? 'text-green-600' : 'text-red-600'}`}>
+          <Card className="p-3 sm:p-4 mb-4 sm:mb-6">
+            <p className={`text-center text-sm sm:text-base ${message.includes('✅') ? 'text-green-600' : 'text-red-600'}`}>
               {message}
             </p>
           </Card>
         )}
 
         {error && (
-          <Card className="p-4 mb-6">
-            <p className="text-center text-red-600">
+          <Card className="p-3 sm:p-4 mb-4 sm:mb-6">
+            <p className="text-center text-red-600 text-sm sm:text-base">
               ❌ Error: {error}
             </p>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">📱 Subscription Status</h3>
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">📱 Subscription Status</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Current Status:</span>
-                <span className={`font-semibold ${isSubscribed ? 'text-green-600' : 'text-red-600'}`}>
+                <span className="text-gray-600 text-sm sm:text-base">Current Status:</span>
+                <span className={`font-semibold text-sm sm:text-base ${isSubscribed ? 'text-green-600' : 'text-red-600'}`}>
                   {isSubscribed ? 'Subscribed' : 'Not Subscribed'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Total Subscribers:</span>
-                <span className="font-semibold text-blue-600">
+                <span className="text-gray-600 text-sm sm:text-base">Total Subscribers:</span>
+                <span className="font-semibold text-blue-600 text-sm sm:text-base">
                   {totalSubscribers}
                 </span>
               </div>
@@ -170,43 +179,43 @@ const NotificationSettingsSection = () => {
                   <Button
                     onClick={handleUnsubscribe}
                     disabled={loading}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base py-2 sm:py-3"
                   >
-                    {loading ? 'Unsubscribing...' : 'Unsubscribe from All Events'}
+                    {loading ? 'Unsubscribing...' : '🔕 Unsubscribe from All Events'}
                   </Button>
                 ) : (
                   <Button
                     onClick={handleSubscribe}
                     disabled={loading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base py-2 sm:py-3"
                   >
-                    {loading ? 'Subscribing...' : 'Subscribe to All Events'}
+                    {loading ? 'Subscribing...' : '🔔 Subscribe to All Events'}
                   </Button>
                 )}
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">🔔 Event Preferences</h3>
-            <div className="space-y-4">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">🔔 Event Preferences</h3>
+            <div className="space-y-3 sm:space-y-4">
               {eventTypes.map((eventType) => (
                 <div key={eventType.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <span className="text-2xl mr-3">{eventType.icon}</span>
-                    <div>
-                      <h4 className="font-medium">{eventType.label}</h4>
-                      <p className="text-sm text-gray-600">{eventType.description}</p>
+                  <div className="flex items-center flex-1 min-w-0">
+                    <span className="text-xl sm:text-2xl mr-2 sm:mr-3 flex-shrink-0">{eventType.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-sm sm:text-base truncate">{eventType.label}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">{eventType.description}</p>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer ml-2 flex-shrink-0">
                     <input
                       type="checkbox"
                       checked={settings?.eventTypes?.[eventType.key] || false}
                       onChange={() => toggleEventType(eventType.key)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
               ))}
@@ -214,7 +223,7 @@ const NotificationSettingsSection = () => {
               <Button
                 onClick={handleSaveSettings}
                 disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white mt-4"
+                className="w-full bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base py-2 sm:py-3 mt-4"
               >
                 {loading ? 'Saving...' : 'Save Settings'}
               </Button>
@@ -222,10 +231,10 @@ const NotificationSettingsSection = () => {
           </Card>
         </div>
 
-        <div className="mt-8">
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">ℹ️ How It Works</h3>
-            <div className="space-y-3 text-gray-600">
+        <div className="mt-6 sm:mt-8">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">ℹ️ How It Works</h3>
+            <div className="space-y-2 sm:space-y-3 text-gray-600 text-sm sm:text-base">
               <p>
                 • <strong>Subscribe/Unsubscribe:</strong> Control whether you receive any event notifications
               </p>
@@ -233,7 +242,7 @@ const NotificationSettingsSection = () => {
                 • <strong>Event Preferences:</strong> Choose which specific event types you want to be notified about
               </p>
               <p>
-                • <strong>Real-time Updates:</strong> Notifications are sent immediately when events occur on the blockchain
+                • <strong>Real-time Updates:</strong> Notifications are sent every 30 minutes when events occur
               </p>
               <p>
                 • <strong>Telegram Integration:</strong> All notifications are sent directly to your Telegram chat

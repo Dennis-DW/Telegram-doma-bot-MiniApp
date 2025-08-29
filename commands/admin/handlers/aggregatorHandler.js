@@ -1,20 +1,27 @@
 // commands/admin/handlers/aggregatorHandler.js
 import eventAggregator from "../../../utils/eventAggregator.js";
-import { formatAggregatorSettings } from "../utils/formatUtils.js";
 import { ADMIN_CONFIG } from "../config/index.js";
 
 // Show aggregator settings
 export const showAggregatorSettings = async (bot, chatId) => {
   try {
     const status = eventAggregator.getStatus();
-    const message = formatAggregatorSettings(status);
+    
+    let message = `Event Aggregator Settings\n\n`;
+    message += `Current Status:\n`;
+    message += `• Queue Size: ${status.queueSize}\n`;
+    message += `• Processing: ${status.isProcessing ? 'Yes' : 'No'}\n`;
+    message += `• Last Broadcast: ${status.lastBroadcastTime ? new Date(status.lastBroadcastTime).toLocaleString() : 'Never'}\n\n`;
+    message += `Configuration:\n`;
+    message += `• Broadcast Interval: 30 seconds\n`;
+    message += `• Max Events per Batch: 5\n`;
+    message += `• Min Broadcast Interval: 10 seconds`;
 
     const keyboard = {
       inline_keyboard: ADMIN_CONFIG.KEYBOARDS.AGGREGATOR_MENU
     };
 
     await bot.sendMessage(chatId, message, { 
-      parse_mode: "MarkdownV2",
       reply_markup: keyboard 
     });
   } catch (error) {

@@ -1,24 +1,34 @@
 // api/controllers/subscriptionController.js
-import { getSubscribers, addSubscriber, removeSubscriber } from '../../utils/storage.js';
+import { 
+  getSubscribers, 
+  addSubscriber, 
+  removeSubscriber, 
+  getUserSettings as getUserSettingsFromStorage, 
+  updateUserSettings,
+  getSubscriptionStatus as getSubscriptionStatusFromStorage
+} from '../../utils/storage.js';
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseUtils.js';
 import { API_CONFIG } from '../config/index.js';
 
 // Get subscription status
 export const getSubscriptionStatus = async (req, res) => {
   try {
-    const subscribers = getSubscribers();
     const { telegramId } = req.query;
     
-    // Check if the specific user is subscribed
-    const isSubscribed = telegramId ? subscribers.includes(telegramId) : false;
-    
-    const subscriptionStatus = {
-      subscribed: isSubscribed,
+    if (telegramId) {
+      // Get status for specific user
+      const status = getSubscriptionStatusFromStorage(telegramId);
+      sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
+    } else {
+      // Get general status
+      const subscribers = getSubscribers();
+      const status = {
+        subscribed: false,
       totalSubscribers: subscribers.length,
       lastUpdated: new Date().toISOString()
     };
-    
-    sendSuccessResponse(res, subscriptionStatus, 'Subscription status retrieved successfully');
+      sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
+    }
   } catch (error) {
     console.error('Error fetching subscription status:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.FETCH_SUBSCRIPTION, 500, error);
@@ -36,7 +46,10 @@ export const subscribeUser = async (req, res) => {
     
     addSubscriber(telegramId);
     
-    sendSuccessResponse(res, { telegramId }, API_CONFIG.MESSAGES.SUCCESS.SUBSCRIBED, 201);
+    // Get updated status
+    const status = getSubscriptionStatusFromStorage(telegramId);
+    
+    sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.SUBSCRIBED, 201);
   } catch (error) {
     console.error('Error subscribing user:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.SUBSCRIBE, 500, error);
@@ -54,7 +67,14 @@ export const unsubscribeUser = async (req, res) => {
     
     removeSubscriber(telegramId);
     
-    sendSuccessResponse(res, { telegramId }, API_CONFIG.MESSAGES.SUCCESS.UNSUBSCRIBED);
+    // Get updated status
+    const status = {
+      subscribed: false,
+      totalSubscribers: getSubscribers().length,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.UNSUBSCRIBED);
   } catch (error) {
     console.error('Error unsubscribing user:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.UNSUBSCRIBE, 500, error);
@@ -64,19 +84,48 @@ export const unsubscribeUser = async (req, res) => {
 // Update subscription settings
 export const updateSubscriptionSettings = async (req, res) => {
   try {
-    const { settings } = req.body;
+    const { telegramId, settings } = req.body;
     
-    // This would typically save the user's notification preferences
-    // For now, we'll just return success
-    const updatedSettings = {
-      ...settings,
-      updatedAt: new Date().toISOString()
-    };
+    if (!telegramId) {
+      return sendErrorResponse(res, 'Telegram ID is required', 400);
+    }
     
-    sendSuccessResponse(res, updatedSettings, API_CONFIG.MESSAGES.SUCCESS.SETTINGS_UPDATED);
+    if (!settings) {
+      return sendErrorResponse(res, 'Settings are required', 400);
+    }
+    
+    // Update user settings
+    const updatedSettings = updateUserSettings(telegramId, settings);
+    
+    // Get updated status
+    const status = getSubscriptionStatusFromStorage(telegramId);
+    
+    sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.SETTINGS_UPDATED);
   } catch (error) {
     console.error('Error updating subscription settings:', error);
     sendErrorResponse(res, API_CONFIG.MESSAGES.ERROR.UPDATE_SETTINGS, 500, error);
+  }
+};
+
+// Get user settings
+export const getUserSettings = async (req, res) => {
+  try {
+    const { telegramId } = req.query;
+    
+    if (!telegramId) {
+      return sendErrorResponse(res, 'Telegram ID is required', 400);
+    }
+    
+    const settings = getUserSettingsFromStorage(telegramId);
+    
+    if (!settings) {
+      return sendErrorResponse(res, 'User settings not found', 404);
+    }
+    
+    sendSuccessResponse(res, settings, 'User settings retrieved successfully');
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    sendErrorResponse(res, 'Failed to fetch user settings', 500, error);
   }
 };
 
@@ -100,5 +149,6 @@ export default {
   subscribeUser,
   unsubscribeUser,
   updateSubscriptionSettings,
+  getUserSettings,
   getAllSubscribers
 }; 

@@ -3,5 +3,6 @@ export { handleEventAction } from './miniAppHandler.js';
 export { 
   handleEventNotificationCommand, 
   handleHelpCommand, 
-  handleStatusCommand 
+  handleStatusCommand,
+  handleCallbackQuery
 } from './commandHandler.js'; 

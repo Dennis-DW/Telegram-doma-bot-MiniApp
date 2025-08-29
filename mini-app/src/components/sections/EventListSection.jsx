@@ -5,7 +5,7 @@ import { useEvents } from '../../hooks/useEvents';
 
 const EventListSection = () => {
   const { eventType } = useParams();
-  const { events, loading, error, refreshEvents } = useEvents(eventType, 50);
+  const { events, loading, error, refreshEvents, userSettings, allEvents } = useEvents(eventType, 50);
 
   const eventConfig = {
     minting: {
@@ -154,6 +154,13 @@ const EventListSection = () => {
             <p className="text-lg text-gray-600">
               {config.description}
             </p>
+            {userSettings && allEvents && events.length !== allEvents.length && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  🔍 Showing {events.length} of {allEvents.length} events based on your notification preferences
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

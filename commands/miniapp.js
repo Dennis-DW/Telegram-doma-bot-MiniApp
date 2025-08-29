@@ -4,9 +4,9 @@ import {
   handleEventAction,
   handleEventNotificationCommand,
   handleHelpCommand,
-  handleStatusCommand
+  handleStatusCommand,
+  handleCallbackQuery
 } from "./handlers/index.js";
-
 
 // Handle event data from blockchain
 bot.on('web_app_data', async (msg) => {
@@ -23,6 +23,11 @@ bot.on('web_app_data', async (msg) => {
       `Error: ${error.message}`;
     await bot.sendMessage(chatId, errorMessage, { parse_mode: "Markdown" });
   }
+});
+
+// Handle callback queries for inline buttons
+bot.on('callback_query', async (query) => {
+  await handleCallbackQuery(query);
 });
 
 // Event notification command

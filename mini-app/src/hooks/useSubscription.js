@@ -16,7 +16,10 @@ export const useSubscription = () => {
       burning: true,
       locks: true,
       registrar: true,
-      metadata: true
+      metadata: true,
+      locked: true,
+      unlocked: true,
+      expired: true
     },
     frequency: 'realtime'
   });
@@ -30,8 +33,43 @@ export const useSubscription = () => {
     try {
       setLoading(true);
       const telegramId = getTelegramId();
+      
+      if (!telegramId) {
+        throw new Error('Telegram user ID not available');
+      }
+      
       const data = await apiService.getSubscriptionStatus(telegramId);
       setSubscriptionStatus(data.data || data);
+      
+      // Load user settings if available
+      if (data.data?.userSettings) {
+        const newSettings = {
+          ...settings,
+          ...data.data.userSettings
+        };
+        setSettings(newSettings);
+        
+        // Check for bot actions and show notifications
+        if (data.data.userSettings.lastBotAction && data.data.userSettings.source === 'bot') {
+          const action = data.data.userSettings.lastBotAction;
+          const actionTime = data.data.userSettings.lastBotActionTime;
+          
+          // Show notification based on bot action
+          if (action === 'subscribed') {
+            telegramApp.showAlert('✅ You have been subscribed via the bot! Your subscription is now synchronized.');
+          } else if (action === 'unsubscribed') {
+            telegramApp.showAlert('🚫 You have been unsubscribed via the bot! Your unsubscription is now synchronized.');
+          }
+          
+          // Clear the bot action flag
+          await apiService.updateNotificationSettings(telegramId, {
+            ...newSettings,
+            lastBotAction: null,
+            lastBotActionTime: null,
+            source: null
+          });
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
       setError(err.message);
@@ -52,6 +90,15 @@ export const useSubscription = () => {
       
       const result = await apiService.subscribe(telegramId);
       await fetchSubscriptionStatus();
+      
+      // Send notification to bot about subscription from mini-app
+      telegramApp.sendData({
+        action: 'mini_app_subscribed',
+        telegramId: telegramId,
+        source: 'mini_app',
+        timestamp: new Date().toISOString()
+      });
+      
       return result;
     } catch (error) {
       console.error('Failed to subscribe:', error);
@@ -73,6 +120,15 @@ export const useSubscription = () => {
       
       const result = await apiService.unsubscribe(telegramId);
       await fetchSubscriptionStatus();
+      
+      // Send notification to bot about unsubscription from mini-app
+      telegramApp.sendData({
+        action: 'mini_app_unsubscribed',
+        telegramId: telegramId,
+        source: 'mini_app',
+        timestamp: new Date().toISOString()
+      });
+      
       return result;
     } catch (error) {
       console.error('Failed to unsubscribe:', error);
@@ -93,8 +149,23 @@ export const useSubscription = () => {
       }
       
       const updatedSettings = { ...settings, ...newSettings };
-      const result = await apiService.updateNotificationSettings(updatedSettings);
+      const result = await apiService.updateNotificationSettings(telegramId, updatedSettings);
+      
+      // Update local state
       setSettings(updatedSettings);
+      
+      // Refresh subscription status
+      await fetchSubscriptionStatus();
+      
+      // Send notification to bot about settings update from mini-app
+      telegramApp.sendData({
+        action: 'mini_app_settings_updated',
+        telegramId: telegramId,
+        settings: updatedSettings,
+        source: 'mini_app',
+        timestamp: new Date().toISOString()
+      });
+      
       return result;
     } catch (error) {
       console.error('Failed to update settings:', error);
@@ -103,34 +174,62 @@ export const useSubscription = () => {
     } finally {
       setLoading(false);
     }
-  }, [settings, getTelegramId]);
+  }, [settings, getTelegramId, fetchSubscriptionStatus]);
 
-  const toggleEventType = useCallback((eventType) => {
-    setSettings(prev => ({
-      ...prev,
+  const toggleEventType = useCallback(async (eventType) => {
+    try {
+      const newSettings = {
+        ...settings,
       eventTypes: {
-        ...prev.eventTypes,
-        [eventType]: !prev.eventTypes[eventType]
+          ...settings.eventTypes,
+          [eventType]: !settings.eventTypes[eventType]
       }
-    }));
-  }, []);
+      };
+      
+      await updateSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to toggle event type:', error);
+      setError(error.message);
+    }
+  }, [settings, updateSettings]);
 
-  const toggleNotifications = useCallback(() => {
-    setSettings(prev => ({
-      ...prev,
-      notifications: !prev.notifications
-    }));
-  }, []);
+  const toggleNotifications = useCallback(async () => {
+    try {
+      const newSettings = {
+        ...settings,
+        notifications: !settings.notifications
+      };
+      
+      await updateSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to toggle notifications:', error);
+      setError(error.message);
+    }
+  }, [settings, updateSettings]);
 
-  const setFrequency = useCallback((frequency) => {
-    setSettings(prev => ({
-      ...prev,
+  const setFrequency = useCallback(async (frequency) => {
+    try {
+      const newSettings = {
+        ...settings,
       frequency
-    }));
-  }, []);
+      };
+      
+      await updateSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to set frequency:', error);
+      setError(error.message);
+    }
+  }, [settings, updateSettings]);
 
   useEffect(() => {
     fetchSubscriptionStatus();
+    
+    // Set up periodic check for bot actions (every 30 seconds)
+    const interval = setInterval(() => {
+      fetchSubscriptionStatus();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [fetchSubscriptionStatus]);
 
   return {

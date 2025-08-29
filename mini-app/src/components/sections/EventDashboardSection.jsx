@@ -4,7 +4,7 @@ import { Card } from '../ui';
 import { useEvents } from '../../hooks/useEvents';
 
 const EventDashboardSection = () => {
-  const { stats, loading } = useEvents();
+  const { stats, loading, userSettings, events, allEvents } = useEvents();
 
   const eventTypes = [
     {
@@ -71,34 +71,41 @@ const EventDashboardSection = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-4 sm:py-6">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">
             📢 Doma Event Dashboard
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-base sm:text-lg text-gray-600 px-2">
             Monitor and manage domain events across the Doma network
           </p>
+          {userSettings && allEvents && events.length !== allEvents.length && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                🔍 Showing {events.length} of {allEvents.length} events based on your notification preferences
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {eventTypes.map((eventType) => (
-            <Card key={eventType.key} className="text-center p-6">
-              <div className="text-4xl mb-4">{eventType.icon}</div>
-              <h3 className="text-xl font-semibold mb-2">{eventType.title}</h3>
-              <p className="text-gray-600 mb-4">
+            <Card key={eventType.key} className="text-center p-4 sm:p-6">
+              <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">{eventType.icon}</div>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">{eventType.title}</h3>
+              <p className="text-gray-600 mb-3 sm:mb-4 text-sm">
                 {eventType.description}
               </p>
-              <div className="mb-4">
-                <span className="text-2xl font-bold text-gray-900">
+              <div className="mb-3 sm:mb-4">
+                <span className="text-xl sm:text-2xl font-bold text-gray-900">
                   {getEventCount(eventType.key)}
                 </span>
                 <span className="text-sm text-gray-500 ml-1">events</span>
               </div>
               <Link 
                 to={eventType.link}
-                className={`inline-block bg-${eventType.color}-600 text-white px-4 py-2 rounded-lg hover:bg-${eventType.color}-700 transition-colors`}
+                className={`inline-block bg-${eventType.color}-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-${eventType.color}-700 transition-colors text-sm sm:text-base w-full sm:w-auto`}
               >
                 View Events
               </Link>
@@ -106,9 +113,9 @@ const EventDashboardSection = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">📊 Quick Stats</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">📊 Quick Stats</h3>
             {loading ? (
               <div className="space-y-3">
                 <div className="animate-pulse">
@@ -119,21 +126,21 @@ const EventDashboardSection = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Events:</span>
-                  <span className="font-semibold">{stats?.totalEvents || 0}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm sm:text-base">Total Events:</span>
+                  <span className="font-semibold text-sm sm:text-base">{stats?.totalEvents || 0}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Events Today:</span>
-                  <span className="font-semibold">{stats?.eventsToday || 0}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm sm:text-base">Events Today:</span>
+                  <span className="font-semibold text-sm sm:text-base">{stats?.eventsToday || 0}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Active Subscribers:</span>
-                  <span className="font-semibold">{stats?.activeSubscribers || 0}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm sm:text-base">Active Subscribers:</span>
+                  <span className="font-semibold text-sm sm:text-base">{stats?.activeSubscribers || 0}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Network Status:</span>
-                  <span className="font-semibold text-green-600">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-sm sm:text-base">Network Status:</span>
+                  <span className="font-semibold text-green-600 text-sm sm:text-base">
                     {stats?.networkStatus || 'Active'}
                   </span>
                 </div>
@@ -141,28 +148,29 @@ const EventDashboardSection = () => {
             )}
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">⚙️ Quick Actions</h3>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">⚙️ Quick Actions</h3>
             <div className="space-y-3">
               <Link 
                 to="/settings" 
-                className="block w-full bg-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center"
+                className="block w-full bg-gray-100 text-gray-800 px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm sm:text-base"
               >
                 Manage Notifications
               </Link>
               <button 
-                className="block w-full bg-blue-100 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-center"
+                className="block w-full bg-blue-100 text-blue-800 px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-center text-sm sm:text-base"
                 onClick={() => {
                   // Send action to bot
                   window.Telegram?.WebApp?.sendData?.(JSON.stringify({
-                    action: 'subscribe_events'
+                    action: 'subscribe',
+                    source: 'mini_app'
                   }));
                 }}
               >
                 Subscribe to Events
               </button>
               <button 
-                className="block w-full bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors text-center"
+                className="block w-full bg-green-100 text-green-800 px-3 sm:px-4 py-2 rounded-lg hover:bg-green-200 transition-colors text-center text-sm sm:text-base"
                 onClick={() => {
                   // Refresh events
                   window.location.reload();

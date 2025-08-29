@@ -13,9 +13,7 @@ export const API_CONFIG = {
   CORS_METHODS: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   CORS_HEADERS: ['Content-Type', 'Authorization'],
   
-  // Rate Limiting
-  RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: 100, // 100 requests per window
+
   
   // Event Configuration
   DEFAULT_EVENT_LIMIT: 50,

@@ -3,7 +3,9 @@ import "./commands/start.js";
 import "./commands/subscribe.js";
 import "./commands/unsubscribe.js";
 import "./commands/admin.js";
-import "./commands/miniapp.js"; 
+import "./commands/miniapp.js";
+
+ 
 
 // Listener
 import { startDomaListeners, stopDomaListeners } from "./listeners/domaEvents.js";
@@ -20,6 +22,8 @@ import bot from "./config/bot.js";
     // Start Telegram bot
     console.log("🤖 Telegram bot initialized...");
 
+
+
     // Start on-chain listeners
     await startDomaListeners();
     console.log("🔗 Doma event listeners started...");
@@ -34,23 +38,11 @@ import bot from "./config/bot.js";
           
           for (const { chatId, message } of pendingMessages) {
             try {
-              // Debug: Log the exact message being sent to Telegram
-              console.log(`🔍 DEBUG - Sending to Telegram (chatId: ${chatId}):`, JSON.stringify(message));
-              console.log(`🔍 DEBUG - Telegram message contains unescaped parentheses:`, /(?<!\\)[()]/.test(message));
-
-              // Send the message with MarkdownV2 parsing
-              await bot.sendMessage(chatId, message, { parse_mode: "MarkdownV2" });
+              // Send the message as plain text
+              await bot.sendMessage(chatId, message);
               console.log(`✅ Sent aggregated message to ${chatId}`);
             } catch (error) {
-              console.error(`❌ Failed to send aggregated message to ${chatId}:`, error.message);
-              // Fallback to plain text mode if MarkdownV2 fails
-              try {
-                console.log(`🔄 Retrying with plain text for chatId: ${chatId}`);
-                await bot.sendMessage(chatId, message);
-                console.log(`✅ Sent plain text message to ${chatId}`);
-              } catch (fallbackError) {
-                console.error(`❌ Failed to send plain text message to ${chatId}:`, fallbackError.message);
-              }
+              console.error(`❌ Failed to send aggregated message to ${chatId}:`, error);
             }
           }
         }

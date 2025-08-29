@@ -67,17 +67,17 @@ function App() {
   // Show API error screen
   if (apiStatus === 'error') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
           <div className="text-center">
             <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Connection Error</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Connection Error</h2>
+            <p className="text-gray-600 mb-6 text-sm">
               Unable to connect to the Doma Event Tracker API. Please check your connection and try again.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors w-full"
             >
               Retry Connection
             </button>
@@ -99,9 +99,9 @@ function App() {
       <Router>
         <HeaderSection user={user} apiStatus={apiStatus} />
         
-        {/* Debug info */}
+        {/* Debug info - only show on larger screens */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+          <div className="hidden md:block bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -122,7 +122,7 @@ function App() {
           </div>
         )}
         
-        <main>
+        <main className="pb-20">
           <Routes>
             <Route path="/" element={<EventDashboardSection />} />
             
