@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, Badge } from '../ui';
 import { useEvents } from '../../hooks/useEvents';
+import { openExplorer } from '../../utils/explorer';
 
 const EventListSection = () => {
   const { eventType } = useParams();
@@ -211,11 +212,7 @@ const EventListSection = () => {
                   <div className="ml-4">
                     <button 
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      onClick={() => {
-                        // Open transaction in explorer
-                        const explorerUrl = `https://explorer-testnet.doma.xyz/tx/${event.txHash}`;
-                        window.open(explorerUrl, '_blank');
-                      }}
+                      onClick={() => openExplorer(event.txHash, 'tx')}
                     >
                       View on Explorer
                     </button>

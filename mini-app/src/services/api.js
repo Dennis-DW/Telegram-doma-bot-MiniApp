@@ -119,7 +119,9 @@ class ApiService {
       this.eventSource = new EventSource(`${this.baseURL}/api/events/stream`);
       
       this.eventSource.onopen = () => {
+        if (process.env.NODE_ENV === 'development') {
         console.log('Event stream connected');
+      }
         this.reconnectAttempts = 0;
         if (onConnect) onConnect();
       };
@@ -149,7 +151,9 @@ class ApiService {
   handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+              if (process.env.NODE_ENV === 'development') {
+          console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        }
       
       setTimeout(() => {
         this.startEventStream();

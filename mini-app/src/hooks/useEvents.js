@@ -32,14 +32,18 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
     try {
       const telegramId = getTelegramId();
       if (!telegramId) {
-        console.log('No Telegram ID available, using default settings');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('No Telegram ID available, using default settings');
+        }
         return;
       }
 
       const data = await apiService.getUserSettings(telegramId);
       const settings = data.data || data;
       setUserSettings(settings);
-      console.log('User settings loaded:', settings);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('User settings loaded:', settings);
+      }
     } catch (err) {
       console.error('Failed to fetch user settings:', err);
       // Use default settings if fetch fails
@@ -65,7 +69,9 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
   // Filter events based on user settings
   const filterEventsBySettings = useCallback((eventsToFilter, settings) => {
     if (!settings || !settings.eventTypes) {
-      console.log('No user settings available, showing all events');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('No user settings available, showing all events');
+      }
       return eventsToFilter;
     }
 
@@ -85,18 +91,22 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
     const filtered = eventsToFilter.filter(event => {
       const mappedType = eventTypeMapping[event.type];
       if (!mappedType) {
-        console.log(`Unknown event type: ${event.type}, showing by default`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Unknown event type: ${event.type}, showing by default`);
+        }
         return true; // Show unknown event types by default
       }
       
       const isEnabled = settings.eventTypes[mappedType];
-      if (!isEnabled) {
+      if (!isEnabled && process.env.NODE_ENV === 'development') {
         console.log(`Filtering out event type: ${event.type} (${mappedType})`);
       }
       return isEnabled;
     });
 
-    console.log(`Filtered ${eventsToFilter.length} events to ${filtered.length} based on user settings`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Filtered ${eventsToFilter.length} events to ${filtered.length} based on user settings`);
+    }
     return filtered;
   }, []);
 
@@ -215,7 +225,9 @@ export const useEvents = (eventType = null, limit = 50, enableRealtime = false) 
   }, []);
 
   const handleRealtimeConnect = useCallback(() => {
-    console.log('Real-time connection established');
+          if (process.env.NODE_ENV === 'development') {
+        console.log('Real-time connection established');
+      }
     setIsConnected(true);
   }, []);
 

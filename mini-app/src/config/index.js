@@ -35,8 +35,13 @@ export const CONFIG = {
 
   // URL Configuration
   URLS: {
-    EXPLORER_BASE: import.meta.env.VITE_EXPLORER_BASE_URL,
-    FRONTEND_BASE: import.meta.env.VITE_FRONTEND_BASE_URL
+    EXPLORER_BASE: import.meta.env.VITE_EXPLORER_BASE_URL || 'https://explorer-testnet.doma.xyz',
+    FRONTEND_BASE: import.meta.env.VITE_FRONTEND_BASE_URL,
+    EXPLORERS: {
+      PRIMARY: 'https://explorer-testnet.doma.xyz',
+      FALLBACK: 'https://testnet.doma.xyz',
+      ALTERNATIVE: 'https://doma-testnet-explorer.vercel.app'
+    }
   },
 
   // Feature Flags

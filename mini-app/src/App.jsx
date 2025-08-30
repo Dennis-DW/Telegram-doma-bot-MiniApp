@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import telegramApp from './utils/telegram';
-import { useSystem } from './hooks/useSystem';
-import { useEvents } from './hooks/useEvents';
+import { useAppDispatch } from './store/hooks';
+import { 
+  useEventStats, 
+  useEventsLoading, 
+  useEventsList 
+} from './store/hooks';
+import { fetchEventStats, fetchRecentEvents } from './store/slices/eventsSlice';
 import {
   HeaderSection,
   EventDashboardSection,
@@ -12,11 +17,13 @@ import {
 } from './components/sections';
 
 function App() {
+  const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [apiStatus, setApiStatus] = useState('checking');
-  const { isHealthy, checkHealth } = useSystem();
-  const { events, stats, loading: eventsLoading, error: eventsError } = useEvents();
+  const stats = useEventStats();
+  const eventsLoading = useEventsLoading();
+  const events = useEventsList();
 
   useEffect(() => {
     initializeApp();
@@ -24,19 +31,28 @@ function App() {
 
   const initializeApp = async () => {
     try {
-      console.log('Initializing Doma Event Tracker...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Initializing Doma Event Tracker...');
+      }
       setIsLoading(true);
       
       // Get Telegram user info
       const tgUser = telegramApp.getUser();
-      console.log('Telegram user:', tgUser);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Telegram user:', tgUser);
+      }
       setUser(tgUser);
       
-      // Check API health
+      // Load initial data with Redux
       try {
-        await checkHealth();
+        await Promise.all([
+          dispatch(fetchEventStats()),
+          dispatch(fetchRecentEvents({ limit: 10 }))
+        ]);
         setApiStatus('connected');
-        console.log('✅ API connection successful');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ API connection successful');
+        }
       } catch (error) {
         setApiStatus('error');
         console.error('❌ API connection failed:', error);
@@ -50,7 +66,9 @@ function App() {
         timestamp: new Date().toISOString()
       });
       
-      console.log('App initialization complete');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('App initialization complete');
+      }
     } catch (error) {
       console.error('Failed to initialize app:', error);
       setApiStatus('error');
@@ -87,12 +105,13 @@ function App() {
     );
   }
 
-  // Debug: Show API status and data
-  console.log('API Status:', apiStatus);
-  console.log('Events loaded:', events.length);
-  console.log('Stats:', stats);
-  console.log('Events loading:', eventsLoading);
-  console.log('Events error:', eventsError);
+  // Debug: Show API status and data (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('API Status:', apiStatus);
+    console.log('Events loaded:', events.length);
+    console.log('Stats:', stats);
+    console.log('Events loading:', eventsLoading);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,7 +133,6 @@ function App() {
                   <p><strong>API Status:</strong> {apiStatus}</p>
                   <p><strong>Events Loaded:</strong> {events.length}</p>
                   <p><strong>Events Loading:</strong> {eventsLoading ? 'Yes' : 'No'}</p>
-                  <p><strong>Events Error:</strong> {eventsError || 'None'}</p>
                   <p><strong>Stats:</strong> {stats ? `${stats.totalEvents} total events` : 'Not loaded'}</p>
                 </div>
               </div>

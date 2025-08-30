@@ -6,19 +6,25 @@ export class TelegramWebApp {
   }
 
   init() {
+      if (process.env.NODE_ENV === 'development') {
     console.log('Initializing Telegram WebApp...');
     console.log('window.Telegram:', window.Telegram);
     console.log('window.Telegram?.WebApp:', window.Telegram?.WebApp);
+  }
     
     if (!this.tg) {
-      console.warn('Telegram WebApp not available - this might be normal in development');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Telegram WebApp not available - this might be normal in development');
+      }
       return;
     }
 
     try {
       // Initialize the Telegram WebApp
       this.tg.ready();
-      console.log('Telegram WebApp ready');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Telegram WebApp ready');
+      }
       
       // Set up theme
       this.tg.expand();
@@ -26,7 +32,9 @@ export class TelegramWebApp {
       
       // Set main button if needed
       this.setupMainButton();
-      console.log('Telegram WebApp initialized successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Telegram WebApp initialized successfully');
+      }
     } catch (error) {
       console.error('Error initializing Telegram WebApp:', error);
     }

@@ -1,31 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button } from '../ui';
-import { useSubscription } from '../../hooks/useSubscription';
-import { useEvents } from '../../hooks/useEvents';
+import { useAppDispatch } from '../../store/hooks';
+import { 
+  useSubscriptionStatus, 
+  useSubscriptionSettings, 
+  useSubscriptionLoading 
+} from '../../store/hooks';
+import { 
+  fetchSubscriptionStatus, 
+  subscribeUser, 
+  unsubscribeUser, 
+  updateUserSettings,
+  toggleEventType as toggleEventTypeAction
+} from '../../store/slices/subscriptionSlice';
 
 const NotificationSettingsSection = () => {
-  const {
-    subscriptionStatus,
-    settings,
-    loading,
-    error,
-    subscribe,
-    unsubscribe,
-    updateSettings,
-    toggleEventType,
-    toggleNotifications,
-    refresh
-  } = useSubscription();
-
-  const { refreshUserSettings } = useEvents();
+  const dispatch = useAppDispatch();
+  const subscriptionStatus = useSubscriptionStatus();
+  const settings = useSubscriptionSettings();
+  const loading = useSubscriptionLoading();
 
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // Refresh subscription status on component mount
-    refresh();
-  }, [refresh]);
+    // Fetch subscription status on component mount
+    dispatch(fetchSubscriptionStatus());
+    
+    // Set up periodic refresh every 30 seconds to keep status updated
+    const interval = setInterval(() => {
+      dispatch(fetchSubscriptionStatus());
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   useEffect(() => {
     // Clear message after 5 seconds
@@ -37,9 +45,7 @@ const NotificationSettingsSection = () => {
 
   const handleSubscribe = async () => {
     try {
-      await subscribe();
-      // Refresh user settings after subscription
-      await refreshUserSettings();
+      const result = await dispatch(subscribeUser()).unwrap();
       setMessage('✅ Successfully subscribed to event notifications!');
     } catch (error) {
       console.error('Failed to subscribe:', error);
@@ -49,9 +55,7 @@ const NotificationSettingsSection = () => {
 
   const handleUnsubscribe = async () => {
     try {
-      await unsubscribe();
-      // Refresh user settings after unsubscription
-      await refreshUserSettings();
+      const result = await dispatch(unsubscribeUser()).unwrap();
       setMessage('✅ Successfully unsubscribed from event notifications.');
     } catch (error) {
       console.error('Failed to unsubscribe:', error);
@@ -61,14 +65,16 @@ const NotificationSettingsSection = () => {
 
   const handleSaveSettings = async () => {
     try {
-      await updateSettings(settings);
-      // Refresh user settings in the events hook to apply filters
-      await refreshUserSettings();
+      const result = await dispatch(updateUserSettings(settings)).unwrap();
       setMessage('✅ Notification settings updated successfully! Events will be filtered based on your preferences.');
     } catch (error) {
       console.error('Failed to update settings:', error);
       setMessage('❌ Failed to update settings. Please try again.');
     }
+  };
+
+  const handleToggleEventType = (eventType) => {
+    dispatch(toggleEventTypeAction({ eventType }));
   };
 
   const eventTypes = [
@@ -148,13 +154,7 @@ const NotificationSettingsSection = () => {
           </Card>
         )}
 
-        {error && (
-          <Card className="p-3 sm:p-4 mb-4 sm:mb-6">
-            <p className="text-center text-red-600 text-sm sm:text-base">
-              ❌ Error: {error}
-            </p>
-          </Card>
-        )}
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="p-4 sm:p-6">
@@ -212,7 +212,7 @@ const NotificationSettingsSection = () => {
                     <input
                       type="checkbox"
                       checked={settings?.eventTypes?.[eventType.key] || false}
-                      onChange={() => toggleEventType(eventType.key)}
+                      onChange={() => handleToggleEventType(eventType.key)}
                       className="sr-only peer"
                     />
                     <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

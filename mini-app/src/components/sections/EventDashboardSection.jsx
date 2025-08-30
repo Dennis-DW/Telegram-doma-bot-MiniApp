@@ -158,18 +158,6 @@ const EventDashboardSection = () => {
                 Manage Notifications
               </Link>
               <button 
-                className="block w-full bg-blue-100 text-blue-800 px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-center text-sm sm:text-base"
-                onClick={() => {
-                  // Send action to bot
-                  window.Telegram?.WebApp?.sendData?.(JSON.stringify({
-                    action: 'subscribe',
-                    source: 'mini_app'
-                  }));
-                }}
-              >
-                Subscribe to Events
-              </button>
-              <button 
                 className="block w-full bg-green-100 text-green-800 px-3 sm:px-4 py-2 rounded-lg hover:bg-green-200 transition-colors text-center text-sm sm:text-base"
                 onClick={() => {
                   // Refresh events

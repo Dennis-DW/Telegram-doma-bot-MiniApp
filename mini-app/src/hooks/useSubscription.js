@@ -39,20 +39,21 @@ export const useSubscription = () => {
       }
       
       const data = await apiService.getSubscriptionStatus(telegramId);
-      setSubscriptionStatus(data.data || data);
+      const statusData = data.data || data;
+      setSubscriptionStatus(statusData);
       
       // Load user settings if available
-      if (data.data?.userSettings) {
+      if (statusData?.userSettings) {
         const newSettings = {
           ...settings,
-          ...data.data.userSettings
+          ...statusData.userSettings
         };
         setSettings(newSettings);
         
         // Check for bot actions and show notifications
-        if (data.data.userSettings.lastBotAction && data.data.userSettings.source === 'bot') {
-          const action = data.data.userSettings.lastBotAction;
-          const actionTime = data.data.userSettings.lastBotActionTime;
+        if (statusData.userSettings.lastBotAction && statusData.userSettings.source === 'bot') {
+          const action = statusData.userSettings.lastBotAction;
+          const actionTime = statusData.userSettings.lastBotActionTime;
           
           // Show notification based on bot action
           if (action === 'subscribed') {
@@ -77,7 +78,7 @@ export const useSubscription = () => {
     } finally {
       setLoading(false);
     }
-  }, [getTelegramId]);
+  }, [getTelegramId, settings]);
 
   const subscribe = useCallback(async () => {
     try {
