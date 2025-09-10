@@ -13,6 +13,9 @@ module.exports = {
       env_development: {
         NODE_ENV: 'development'
       },
+      // Load environment variables from .env file
+      env_file: '.env',
+      
       // Restart policy
       min_uptime: '10s',
       max_restarts: 10,
@@ -46,6 +49,8 @@ module.exports = {
       env_development: {
         NODE_ENV: 'development'
       },
+      // Load environment variables from .env file
+      env_file: '.env',
       
       // Restart policy
       min_uptime: '10s',
