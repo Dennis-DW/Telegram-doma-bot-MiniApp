@@ -2,7 +2,7 @@
 import express from 'express';
 import {
   healthCheck,
-  manualCleanup,
+  cleanupEvents,
   getSystemInfo,
   getApiDocs
 } from '../controllers/systemController.js';
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get('/health', healthCheck);
 
 // Manual cleanup
-router.post('/cleanup', manualCleanup);
+router.post('/cleanup', cleanupEvents);
 
 // System information
 router.get('/system/info', getSystemInfo);
@@ -21,4 +21,4 @@ router.get('/system/info', getSystemInfo);
 // API documentation
 router.get('/docs', getApiDocs);
 
-export default router; 
+export default router;

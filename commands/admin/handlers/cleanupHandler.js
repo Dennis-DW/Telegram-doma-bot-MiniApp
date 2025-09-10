@@ -1,38 +1,34 @@
 // commands/admin/handlers/cleanupHandler.js
-import dbCleanup from "../../../utils/dbCleanup.js";
-import { ADMIN_CONFIG } from "../config/index.js";
+import database from "../../../utils/database.js";
+import eventAggregator from "../../../utils/eventAggregator.js";
 
 // Force database cleanup
 export const forceDatabaseCleanup = async (bot, chatId) => {
   try {
-    await bot.sendMessage(chatId, ADMIN_CONFIG.MESSAGES.CLEANUP_STARTING);
+    await bot.sendMessage(chatId, "🧹 Starting database cleanup...");
     
-    await dbCleanup.forceCleanup();
-    await bot.sendMessage(chatId, ADMIN_CONFIG.MESSAGES.CLEANUP_SUCCESS);
+    const deletedCount = await database.cleanupOldEvents(10);
+    
+    await bot.sendMessage(chatId, `✅ Database cleanup completed! Removed ${deletedCount} old events.`);
   } catch (error) {
     console.error("Error during database cleanup:", error);
-    await bot.sendMessage(chatId, `${ADMIN_CONFIG.MESSAGES.CLEANUP_FAILED} ${error.message}`);
+    await bot.sendMessage(chatId, `❌ Database cleanup failed: ${error.message}`);
   }
 };
 
 // Clear event queue
 export const clearEventQueue = async (bot, chatId) => {
   try {
-    const { clearQueue } = await import("../../../utils/eventAggregator.js");
-    const clearedCount = clearQueue();
+    const clearedCount = eventAggregator.clearQueue();
     
-    const message = formatQueueCleared(clearedCount);
-    await bot.sendMessage(chatId, message);
+    await bot.sendMessage(chatId, `🧹 Event queue cleared! Removed ${clearedCount} events from queue.`);
   } catch (error) {
     console.error("Error clearing event queue:", error);
     await bot.sendMessage(chatId, "❌ Failed to clear event queue.");
   }
 };
 
-// Import the formatQueueCleared function
-import { formatQueueCleared } from "../utils/formatUtils.js";
-
 export default {
   forceDatabaseCleanup,
   clearEventQueue
-}; 
+};

@@ -2,11 +2,13 @@
 import cors from 'cors';
 import { API_CONFIG } from '../config/index.js';
 
-export const corsMiddleware = cors({
+export const corsOptions = {
   origin: API_CONFIG.CORS_ORIGIN,
   methods: API_CONFIG.CORS_METHODS,
   allowedHeaders: API_CONFIG.CORS_HEADERS,
   credentials: true
-});
+};
 
-export default corsMiddleware; 
+export const corsMiddleware = cors(corsOptions);
+
+export default corsMiddleware;

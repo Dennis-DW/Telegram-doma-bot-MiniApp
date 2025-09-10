@@ -1,5 +1,6 @@
 // commands/start.js
 import bot from "../config/bot.js";
+import database from "../utils/database.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -66,9 +67,7 @@ bot.on('callback_query', async (query) => {
   try {
     switch (data) {
       case 'subscribe':
-        // Import and call subscribe logic
-        const { addSubscriber } = await import('../utils/storage.js');
-        await addSubscriber(chatId);
+        await database.addSubscriber(chatId);
         await bot.answerCallbackQuery(query.id, { text: "✅ Subscribed to event alerts!" });
         await bot.editMessageText("✅ You are now subscribed to Doma event notifications!", {
           chat_id: chatId,
@@ -77,9 +76,7 @@ bot.on('callback_query', async (query) => {
         break;
 
       case 'unsubscribe':
-        // Import and call unsubscribe logic
-        const { removeSubscriber } = await import('../utils/storage.js');
-        await removeSubscriber(chatId);
+        await database.removeSubscriber(chatId);
         await bot.answerCallbackQuery(query.id, { text: "🚫 Unsubscribed from event alerts!" });
         await bot.editMessageText("🚫 You have unsubscribed from Doma event notifications.", {
           chat_id: chatId,
@@ -103,8 +100,7 @@ bot.on('callback_query', async (query) => {
 
       case 'status':
         // Check subscription status
-        const { getSubscribers } = await import('../utils/storage.js');
-        const subscribers = getSubscribers();
+        const subscribers = await database.getSubscribers();
         const isSubscribed = subscribers.includes(chatId);
         
         await bot.answerCallbackQuery(query.id, { 

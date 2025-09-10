@@ -1,12 +1,5 @@
 // api/controllers/subscriptionController.js
-import { 
-  getSubscribers, 
-  addSubscriber, 
-  removeSubscriber, 
-  getUserSettings as getUserSettingsFromStorage, 
-  updateUserSettings,
-  getSubscriptionStatus as getSubscriptionStatusFromStorage
-} from '../../utils/storage.js';
+import database from '../../utils/database.js';
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseUtils.js';
 import { API_CONFIG } from '../config/index.js';
 
@@ -29,7 +22,7 @@ export const getSubscriptionStatus = async (req, res) => {
       }
       
       // Get status for specific user
-      const status = getSubscriptionStatusFromStorage(telegramId);
+      const status = await database.getSubscriptionStatus(telegramId);
       
       // Cache the result
       statusCache.set(cacheKey, {
@@ -40,10 +33,10 @@ export const getSubscriptionStatus = async (req, res) => {
       sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
     } else {
       // Get general status
-      const subscribers = getSubscribers();
+      const totalSubscribers = await database.getSubscribersCount();
       const status = {
         subscribed: false,
-        totalSubscribers: subscribers.length,
+        totalSubscribers,
         lastUpdated: new Date().toISOString()
       };
       sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
@@ -63,14 +56,14 @@ export const subscribeUser = async (req, res) => {
       return sendErrorResponse(res, 'Telegram ID is required', 400);
     }
     
-    addSubscriber(telegramId);
+    await database.addSubscriber(telegramId);
     
     // Clear cache for this user
     const cacheKey = `status_${telegramId}`;
     statusCache.delete(cacheKey);
     
     // Get updated status
-    const status = getSubscriptionStatusFromStorage(telegramId);
+    const status = await database.getSubscriptionStatus(telegramId);
     
     sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.SUBSCRIBED, 201);
   } catch (error) {
@@ -88,14 +81,14 @@ export const unsubscribeUser = async (req, res) => {
       return sendErrorResponse(res, 'Telegram ID is required', 400);
     }
     
-    removeSubscriber(telegramId);
+    await database.removeSubscriber(telegramId);
     
     // Clear cache for this user
     const cacheKey = `status_${telegramId}`;
     statusCache.delete(cacheKey);
     
     // Get updated status
-    const status = getSubscriptionStatusFromStorage(telegramId);
+    const status = await database.getSubscriptionStatus(telegramId);
     
     sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.UNSUBSCRIBED);
   } catch (error) {
@@ -118,14 +111,14 @@ export const updateSubscriptionSettings = async (req, res) => {
     }
     
     // Update user settings
-    const updatedSettings = updateUserSettings(telegramId, settings);
+    await database.updateUserSettings(telegramId, settings);
     
     // Clear cache for this user
     const cacheKey = `status_${telegramId}`;
     statusCache.delete(cacheKey);
     
     // Get updated status
-    const status = getSubscriptionStatusFromStorage(telegramId);
+    const status = await database.getSubscriptionStatus(telegramId);
     
     sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.SETTINGS_UPDATED);
   } catch (error) {
@@ -143,7 +136,7 @@ export const getUserSettings = async (req, res) => {
       return sendErrorResponse(res, 'Telegram ID is required', 400);
     }
     
-    const settings = getUserSettingsFromStorage(telegramId);
+    const settings = await database.getUserSettings(telegramId);
     
     if (!settings) {
       return sendErrorResponse(res, 'User settings not found', 404);
@@ -159,7 +152,7 @@ export const getUserSettings = async (req, res) => {
 // Get all subscribers (admin only)
 export const getAllSubscribers = async (req, res) => {
   try {
-    const subscribers = getSubscribers();
+    const subscribers = await database.getSubscribers();
     
     sendSuccessResponse(res, { 
       subscribers,
@@ -178,4 +171,4 @@ export default {
   updateSubscriptionSettings,
   getUserSettings,
   getAllSubscribers
-}; 
+};

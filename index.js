@@ -1,28 +1,49 @@
-// Commands
+// Enhanced Doma Bot with Crash Recovery and Request Management
 import "./commands/start.js";
 import "./commands/subscribe.js";
 import "./commands/unsubscribe.js";
 import "./commands/admin.js";
 import "./commands/miniapp.js";
 
- 
-
-// Listener
+// Core systems
 import { startDomaListeners, stopDomaListeners } from "./listeners/domaEvents.js";
 import eventAggregator from "./utils/eventAggregator.js";
-import dbCleanup from "./utils/dbCleanup.js";
 import bot from "./config/bot.js";
+import database from "./utils/database.js";
+import processManager from "./processManager.js";
+import healthMonitor from "./utils/healthMonitor.js";
+import requestQueue from "./utils/requestQueue.js";
+
+// Enhanced command handler
+import { handleCommand as enhancedHandleCommand } from "./commands/handlers/enhancedCommandHandler.js";
+
+// Override the default command handler
+bot.on('message', async (msg) => {
+  if (msg.text && msg.text.startsWith('/')) {
+    await enhancedHandleCommand(msg);
+  }
+});
 
 (async () => {
   try {
+    console.log("🚀 Starting Enhanced Doma Bot...");
+    console.log("=".repeat(60));
+    
+    // Initialize process manager
+    await processManager.initialize();
+    console.log("✅ Process Manager initialized");
+
+    // Initialize database connection
+    console.log("🔗 Connecting to MongoDB...");
+    await database.connect();
+    console.log("✅ Database connection established");
+
     // Clear pending messages to prevent stale messages
     eventAggregator.getPendingMessages();
     console.log("🧹 Cleared pending messages on startup");
 
     // Start Telegram bot
     console.log("🤖 Telegram bot initialized...");
-
-
 
     // Start on-chain listeners
     await startDomaListeners();
@@ -56,33 +77,88 @@ import bot from "./config/bot.js";
     
     // Log system status
     console.log("=".repeat(60));
-    console.log("🚀 SYSTEM STATUS");
+    console.log("🚀 ENHANCED SYSTEM STATUS");
     console.log("=".repeat(60));
     console.log("✅ Telegram Bot: Running");
     console.log("✅ Event Listeners: Active");
     console.log("✅ Event Aggregator: Running");
     console.log("✅ Database Cleanup: Scheduled");
+    console.log("✅ MongoDB: Connected");
+    console.log("✅ Process Manager: Active");
+    console.log("✅ Health Monitor: Active");
+    console.log("✅ Request Queue: Active");
+    console.log("✅ Crash Recovery: Enabled");
+    console.log("✅ Auto-restart: Enabled");
     console.log("=".repeat(60));
     
+    // Log initial health status
+    const healthStatus = healthMonitor.getHealthStatus();
+    console.log("🏥 Initial Health Status:", healthStatus.isHealthy ? "✅ Healthy" : "⚠️ Issues");
+    
+    // Log queue status
+    const queueStatus = requestQueue.getStatus();
+    console.log("📊 Queue Status:", `Size: ${queueStatus.queueSize}, Active: ${queueStatus.activeRequests}`);
+    
   } catch (err) {
-    console.error("❌ Error starting bot:", err);
+    console.error("❌ Error starting enhanced bot:", err);
+    
+    // Attempt recovery
+    console.log("🔄 Attempting system recovery...");
+    try {
+      await healthMonitor.triggerRecovery();
+    } catch (recoveryError) {
+      console.error("❌ Recovery failed:", recoveryError);
+      process.exit(1);
+    }
   }
 })();
 
-// Graceful shutdown
+// Enhanced graceful shutdown
 const shutdown = async (signal) => {
   console.log(`🛑 Received ${signal}. Shutting down gracefully...`);
   
-  // Stop event listeners
-  await stopDomaListeners();
-  
-  // Clear event aggregator queue and pending messages
-  eventAggregator.clearQueue();
-  eventAggregator.getPendingMessages();
-  
-  console.log("✅ Graceful shutdown completed");
-  setTimeout(() => process.exit(0), 1000);
+  try {
+    // Stop event listeners
+    await stopDomaListeners();
+    console.log("✅ Event listeners stopped");
+    
+    // Clear event aggregator queue and pending messages
+    eventAggregator.clearQueue();
+    eventAggregator.getPendingMessages();
+    console.log("✅ Event aggregator cleared");
+    
+    // Stop process manager
+    await processManager.gracefulShutdown(signal);
+    console.log("✅ Process manager stopped");
+    
+    // Disconnect from database
+    await database.disconnect();
+    console.log("✅ Database disconnected");
+    
+    console.log("✅ Enhanced graceful shutdown completed");
+    setTimeout(() => process.exit(0), 1000);
+    
+  } catch (error) {
+    console.error("❌ Error during shutdown:", error);
+    process.exit(1);
+  }
 };
 
+// Set up signal handlers
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  processManager.handleCriticalError(error);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  processManager.handleCriticalError(reason);
+});
+
+// Export for PM2 monitoring
+export { processManager, healthMonitor, requestQueue };

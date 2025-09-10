@@ -1,5 +1,5 @@
 // utils/broadcast.js
-import { getSubscribers } from "./storage.js";
+import database from "./database.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -136,7 +136,7 @@ function formatMessage(type, data) {
 
     default:
       if (txLink) {
-        return `📢 *New Event Detected: ${escapeMarkdownV2(type)}*\n\n` +
+        return `�� *New Event Detected: ${escapeMarkdownV2(type)}*\n\n` +
           `📝 Data:\n\`${escapeMarkdownV2(customStringify(data))}\`\n` +
           `🔗 [View Transaction](${escapeMarkdownV2(txLink)})`;
       } else {
@@ -152,48 +152,52 @@ function formatMessage(type, data) {
  * @param {object} data - Optional event data (used when messageOrEvent is a type string)
  */
 export async function broadcast(messageOrEvent, data = null) {
-  const subscribers = getSubscribers();
+  try {
+    const subscribers = await database.getSubscribers();
 
-  if (subscribers.length === 0) {
-    console.log("⚠️ No subscribers to broadcast to.");
-    return;
-  }
-
-  let message;
-  let type;
-
-  // Handle different input formats
-  if (typeof messageOrEvent === "string") {
-    // If it's a string, it's either a formatted message or an event type
-    if (data) {
-      // messageOrEvent is the event type, data contains the event data
-      type = messageOrEvent;
-      message = formatMessage(type, data);
-    } else {
-      // messageOrEvent is already a formatted message
-      message = messageOrEvent;
+    if (subscribers.length === 0) {
+      console.log("⚠️ No subscribers to broadcast to.");
+      return;
     }
-  } else if (typeof messageOrEvent === "object") {
-    // messageOrEvent is an event object
-    type = messageOrEvent.type;
-    message = formatMessage(type, messageOrEvent.args || messageOrEvent);
-  } else {
-    console.error("❌ Invalid message format for broadcast");
-    return;
+
+    let message;
+    let type;
+
+    // Handle different input formats
+    if (typeof messageOrEvent === "string") {
+      // If it's a string, it's either a formatted message or an event type
+      if (data) {
+        // messageOrEvent is the event type, data contains the event data
+        type = messageOrEvent;
+        message = formatMessage(type, data);
+      } else {
+        // messageOrEvent is already a formatted message
+        message = messageOrEvent;
+      }
+    } else if (typeof messageOrEvent === "object") {
+      // messageOrEvent is an event object
+      type = messageOrEvent.type;
+      message = formatMessage(type, messageOrEvent.args || messageOrEvent);
+    } else {
+      console.error("❌ Invalid message format for broadcast");
+      return;
+    }
+
+    console.log("=".repeat(60));
+    console.log(`📢 BROADCASTING EVENT: ${type || "message"}`);
+    console.log("=".repeat(60));
+    console.log(`👥 Subscribers: ${subscribers.length}`);
+    console.log(`📝 Message Type: ${type || "Custom Message"}`);
+    console.log(`📋 Message Preview: ${message.substring(0, 100)}...`);
+    console.log("=".repeat(60));
+
+    // Store the message for the main bot to send
+    // The main bot will handle the actual sending to avoid conflicts
+    console.log("📤 Event queued for broadcasting by main bot");
+    console.log("=".repeat(60));
+  } catch (error) {
+    console.error("❌ Error in broadcast function:", error);
   }
-
-  console.log("=".repeat(60));
-  console.log(`📢 BROADCASTING EVENT: ${type || "message"}`);
-  console.log("=".repeat(60));
-  console.log(`👥 Subscribers: ${subscribers.length}`);
-  console.log(`📝 Message Type: ${type || "Custom Message"}`);
-  console.log(`📋 Message Preview: ${message.substring(0, 100)}...`);
-  console.log("=".repeat(60));
-
-  // Store the message for the main bot to send
-  // The main bot will handle the actual sending to avoid conflicts
-  console.log("📤 Event queued for broadcasting by main bot");
-  console.log("=".repeat(60));
 }
 
 // Export the formatMessage function for use in other modules

@@ -1,61 +1,60 @@
 // commands/admin/handlers/statsHandler.js
-import { getEventStats } from "../../../utils/storage.js";
-import eventAggregator from "../../../utils/eventAggregator.js";
-import dbCleanup from "../../../utils/dbCleanup.js";
+import database from "../../../utils/database.js";
 
-// Show system statistics
-export const showSystemStats = async (bot, chatId) => {
+export const handleStatsCommand = async (bot, chatId) => {
   try {
-    const stats = getEventStats();
-    const aggregatorStatus = eventAggregator.getStatus();
-    const cleanupStatus = dbCleanup.getStatus();
+    const stats = await database.getEventStats();
+    
+    const message = `📊 **System Statistics**\n\n` +
+      `**Events:**\n` +
+      `• Total Events: ${stats.totalEvents}\n` +
+      `• Events Today: ${stats.eventsToday}\n` +
+      `• Events This Week: ${stats.eventsThisWeek}\n` +
+      `• Events This Month: ${stats.eventsThisMonth}\n\n` +
+      `**Subscribers:**\n` +
+      `• Active Subscribers: ${stats.activeSubscribers}\n\n` +
+      `**System:**\n` +
+      `• Network Status: ${stats.networkStatus}\n` +
+      `• Last Updated: ${new Date(stats.lastUpdated).toLocaleString()}\n\n` +
+      `**Event Types:**\n` +
+      Object.entries(stats.eventTypes).map(([type, count]) => 
+        `• ${type}: ${count}`
+      ).join('\n');
 
-    let message = `System Statistics\n\n`;
-    message += `Events:\n`;
-    message += `• Total: ${stats.totalEvents}\n`;
-    message += `• Today: ${stats.eventsToday}\n`;
-    message += `• Types: ${Object.keys(stats.eventTypes).length}\n\n`;
-    message += `Subscribers:\n`;
-    message += `• Active: ${stats.activeSubscribers}\n\n`;
-    message += `Event Aggregator:\n`;
-    message += `• Queue Size: ${aggregatorStatus.queueSize}\n`;
-    message += `• Processing: ${aggregatorStatus.isProcessing ? 'Yes' : 'No'}\n`;
-    message += `• Last Broadcast: ${aggregatorStatus.lastBroadcastTime ? new Date(aggregatorStatus.lastBroadcastTime).toLocaleString() : 'Never'}\n\n`;
-    message += `Database Cleanup:\n`;
-    message += `• Running: ${cleanupStatus.isRunning ? 'Yes' : 'No'}\n`;
-    message += `• Last Cleanup: ${cleanupStatus.lastCleanupTime ? new Date(cleanupStatus.lastCleanupTime).toLocaleString() : 'Never'}\n`;
-    message += `• Next Cleanup: ${cleanupStatus.nextCleanupTime ? new Date(cleanupStatus.nextCleanupTime).toLocaleString() : 'Never'}`;
+    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
 
-    await bot.sendMessage(chatId, message);
   } catch (error) {
-    console.error("Error showing system stats:", error);
-    await bot.sendMessage(chatId, "Failed to retrieve system statistics.");
+    console.error("Error fetching stats:", error);
+    await bot.sendMessage(chatId, "An error occurred while fetching statistics.");
   }
 };
 
-// Show event history
-export const showEventHistory = async (bot, chatId) => {
+export const handleDetailedStats = async (bot, chatId) => {
   try {
-    const stats = getEventStats();
+    const stats = await database.getEventStats();
     
-    let message = `Event History\n\n`;
-    message += `Summary:\n`;
-    message += `• Total Events: ${stats.totalEvents}\n`;
-    message += `• Events Today: ${stats.eventsToday}\n\n`;
-    message += `Event Types:\n`;
-    
-    Object.entries(stats.eventTypes).forEach(([type, count]) => {
-      message += `• ${type}: ${count}\n`;
-    });
+    const todayStats = Object.entries(stats.todayEventTypes)
+      .filter(([type, count]) => count > 0)
+      .map(([type, count]) => `• ${type}: ${count}`)
+      .join('\n') || 'No events today';
 
-    await bot.sendMessage(chatId, message);
+    const message = `📈 **Detailed Statistics**\n\n` +
+      `**Today's Events:**\n${todayStats}\n\n` +
+      `**All-Time Event Types:**\n` +
+      Object.entries(stats.eventTypes)
+        .sort(([,a], [,b]) => b - a)
+        .map(([type, count]) => `• ${type}: ${count}`)
+        .join('\n');
+
+    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+
   } catch (error) {
-    console.error("Error showing event history:", error);
-    await bot.sendMessage(chatId, "Failed to retrieve event history.");
+    console.error("Error fetching detailed stats:", error);
+    await bot.sendMessage(chatId, "An error occurred while fetching detailed statistics.");
   }
 };
 
 export default {
-  showSystemStats,
-  showEventHistory
-}; 
+  handleStatsCommand,
+  handleDetailedStats
+};

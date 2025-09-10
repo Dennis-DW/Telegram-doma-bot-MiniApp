@@ -1,14 +1,12 @@
 // commands/admin/handlers/broadcastHandler.js
-import bot from "../../../config/bot.js";
-import { ADMIN_CONFIG } from "../config/index.js";
-import { getSubscribers } from "../../../utils/storage.js";
+import database from "../../../utils/database.js";
 
 /**
  * Show broadcast usage instructions
  */
 export const startBroadcast = async (bot, chatId) => {
   try {
-    const subscribers = getSubscribers();
+    const subscribers = await database.getSubscribers();
     
     if (subscribers.length === 0) {
       await bot.sendMessage(chatId, "No subscribers to broadcast to.");
@@ -32,7 +30,7 @@ export const startBroadcast = async (bot, chatId) => {
  */
 export const handleDirectBroadcast = async (bot, chatId, messageText) => {
   try {
-    const subscribers = getSubscribers();
+    const subscribers = await database.getSubscribers();
     
     if (subscribers.length === 0) {
       await bot.sendMessage(chatId, "No subscribers to broadcast to.");
@@ -77,9 +75,8 @@ export const handleDirectBroadcast = async (bot, chatId, messageText) => {
     
     // Remove invalid subscribers
     if (invalidSubscribers.length > 0) {
-      const { removeSubscriber } = await import("../../../utils/storage.js");
       for (const chatId of invalidSubscribers) {
-        removeSubscriber(chatId);
+        await database.removeSubscriber(chatId);
         console.log(`Removed invalid subscriber: ${chatId}`);
       }
     }
@@ -102,4 +99,4 @@ export const handleDirectBroadcast = async (bot, chatId, messageText) => {
 export default {
   startBroadcast,
   handleDirectBroadcast
-}; 
+};

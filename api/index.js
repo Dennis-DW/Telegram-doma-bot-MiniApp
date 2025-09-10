@@ -1,8 +1,21 @@
 // api/index.js
+import database from '../utils/database.js';
 import app from './server.js';
 import { API_CONFIG } from './config/index.js';
 
 const PORT = API_CONFIG.PORT;
+
+// Initialize database connection
+(async () => {
+  try {
+    console.log("🔗 Connecting to MongoDB for API...");
+    await database.connect();
+    console.log("✅ API database connection established");
+  } catch (error) {
+    console.error("❌ Failed to connect to database for API:", error);
+    process.exit(1);
+  }
+})();
 
 // Start server
 app.listen(PORT, () => {
@@ -35,11 +48,13 @@ app.listen(PORT, () => {
 // Graceful shutdown
 const shutdown = (signal) => {
   console.log(`🛑 Received ${signal}. Shutting down API server...`);
-  process.exit(0);
+  database.disconnect().then(() => {
+    process.exit(0);
+  });
 };
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // Export the app for external use
-export default app; 
+export default app;

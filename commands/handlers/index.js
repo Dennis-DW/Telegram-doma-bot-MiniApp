@@ -1,8 +1,5 @@
 // commands/handlers/index.js
-export { handleEventAction } from './miniAppHandler.js';
+export { handleMiniAppCommand, handleMiniAppCallback } from './miniAppHandler.js';
 export { 
-  handleEventNotificationCommand, 
-  handleHelpCommand, 
-  handleStatusCommand,
-  handleCallbackQuery
-} from './commandHandler.js'; 
+  handleCommand
+} from './commandHandler.js';

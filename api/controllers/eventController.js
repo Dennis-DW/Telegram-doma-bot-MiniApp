@@ -1,33 +1,25 @@
 // api/controllers/eventController.js
-import { 
-  getEventStats as getEventStatsFromStorage,
-  getEvents,
-  getEventsByType as getEventsByTypeFromStorage,
-  getRecentEvents as getRecentEventsFromStorage
-} from '../../utils/storage.js';
+import database from '../../utils/database.js';
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseUtils.js';
 import { API_CONFIG } from '../config/index.js';
-
-
 
 // Get all events
 export const getAllEvents = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || API_CONFIG.DEFAULT_EVENT_LIMIT;
     const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
     
-    const allEvents = getEvents();
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const events = allEvents.slice(startIndex, endIndex);
+    const events = await database.getEvents(limit, skip);
+    const total = await database.getEvents().then(events => events.length);
     
     sendSuccessResponse(res, { 
       events: events,
       pagination: {
         page,
         limit,
-        total: allEvents.length,
-        totalPages: Math.ceil(allEvents.length / limit)
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     }, 'Events retrieved successfully');
   } catch (error) {
@@ -52,7 +44,7 @@ export const getEventsByType = async (req, res) => {
     
     // Map the event type to the actual blockchain event name
     const blockchainEventType = API_CONFIG.EVENT_TYPE_MAP[eventType];
-    const result = getEventsByTypeFromStorage(blockchainEventType, limit, page);
+    const result = await database.getEventsByType(blockchainEventType, limit, page);
     
     sendSuccessResponse(res, { 
       events: result.events,
@@ -75,7 +67,7 @@ export const getEventsByType = async (req, res) => {
 export const getRecentEvents = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || API_CONFIG.RECENT_EVENTS_LIMIT;
-    const events = getRecentEventsFromStorage(limit);
+    const events = await database.getRecentEvents(limit);
     
     sendSuccessResponse(res, { events: events }, 'Recent events retrieved successfully');
   } catch (error) {
@@ -87,7 +79,7 @@ export const getRecentEvents = async (req, res) => {
 // Get event statistics
 export const getEventStats = async (req, res) => {
   try {
-    const stats = getEventStatsFromStorage();
+    const stats = await database.getEventStats();
     sendSuccessResponse(res, stats, 'Event statistics retrieved successfully');
   } catch (error) {
     console.error('Error fetching stats:', error);

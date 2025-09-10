@@ -1,4 +1,4 @@
-import { getSubscribers, getEvents } from "./storage.js";
+import database from './database.js';
 
 class EventAggregator {
   constructor() {
@@ -59,7 +59,7 @@ class EventAggregator {
     }
 
     this.isProcessing = true;
-    const subscribers = getSubscribers();
+    const subscribers = await database.getSubscribers();
 
     if (subscribers.length === 0) {
       console.log("⚠️ No subscribers to broadcast to.");
@@ -69,7 +69,7 @@ class EventAggregator {
     }
 
     // Get all events for comprehensive reporting
-    const allEvents = getEvents();
+    const allEvents = await database.getEvents();
     const eventsToProcess = this.eventQueue.splice(0, this.maxEventsPerBatch);
     
     console.log("=".repeat(60));
@@ -110,9 +110,8 @@ class EventAggregator {
 
     // Remove invalid subscribers
     if (invalidSubscribers.length > 0) {
-      const { removeSubscriber } = await import("./storage.js");
       for (const chatId of invalidSubscribers) {
-        removeSubscriber(chatId);
+        await database.removeSubscriber(chatId);
       }
     }
 
@@ -286,7 +285,7 @@ class EventAggregator {
       queueSize: this.eventQueue.length,
       isProcessing: this.isProcessing,
       lastBroadcastTime: this.lastBroadcastTime,
-      subscribers: getSubscribers().length
+      subscribers: 0 // Will be updated when database is connected
     };
   }
 

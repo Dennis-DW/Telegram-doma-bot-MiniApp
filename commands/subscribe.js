@@ -1,14 +1,14 @@
 // commands/subscribe.js
 import bot from "../config/bot.js";
-import { addSubscriber, updateUserSettings } from "../utils/storage.js";
+import database from "../utils/database.js";
 
 bot.onText(/\/subscribe/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    await addSubscriber(chatId);
+    await database.addSubscriber(chatId);
     
     // Update user settings to indicate subscription via bot
-    await updateUserSettings(chatId, {
+    await database.updateUserSettings(chatId, {
       lastBotAction: 'subscribed',
       lastBotActionTime: new Date().toISOString(),
       source: 'bot'

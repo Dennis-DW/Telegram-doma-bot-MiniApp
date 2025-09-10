@@ -2,10 +2,11 @@
 import fs from "fs";
 import { Interface } from "ethers"; 
 import { web3 } from "../config/web3.js";
+import database from "../utils/database.js";
+
 const OwnershipTokenAbi = JSON.parse(
   fs.readFileSync(new URL("../abis/OwnershipToken.json", import.meta.url))
 );
-import { saveEvent } from "../utils/storage.js";
 
 const OWNERSHIP_TOKEN_ADDRESS = process.env.OWNERSHIP_TOKEN_ADDRESS;
 
@@ -197,7 +198,7 @@ function handleEventLog(log) {
     console.log(`📢 BLOCKCHAIN EVENT DETECTED: ${eventName.toUpperCase()}`);
     console.log("=".repeat(60));
     console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
-    console.log(`🔗 Transaction Hash: ${log.transactionHash}`);
+    console.log(`�� Transaction Hash: ${log.transactionHash}`);
     console.log(`📦 Block Number: ${log.blockNumber}`);
     console.log(`📋 Log Index: ${log.logIndex}`);
     console.log(`📍 Contract Address: ${log.address}`);
@@ -373,6 +374,20 @@ function handleEventLog(log) {
     }
     console.log("Error:", err.message);
     console.log("=".repeat(60));
+  }
+}
+
+// Save event to database
+async function saveEvent(event) {
+  try {
+    await database.saveEvent(event);
+    console.log(`💾 Event saved to MongoDB: ${event.type}`);
+    
+    // Import and add to aggregator
+    const eventAggregator = (await import('../utils/eventAggregator.js')).default;
+    eventAggregator.addEvent(event);
+  } catch (error) {
+    console.error('❌ Failed to save event:', error);
   }
 }
 

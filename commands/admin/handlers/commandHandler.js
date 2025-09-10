@@ -2,10 +2,10 @@
 import bot from "../../../config/bot.js";
 import { ADMIN_CONFIG } from "../config/index.js";
 import { validateAdminAccess, validateAdminCallback } from "../utils/authUtils.js";
-import { showSystemStats, showEventHistory } from "./statsHandler.js";
+import { handleStatsCommand as showSystemStats, handleDetailedStats } from "./statsHandler.js";
 import { forceDatabaseCleanup, clearEventQueue } from "./cleanupHandler.js";
 import { showAggregatorSettings, processQueueNow, resetAggregator } from "./aggregatorHandler.js";
-import { showSubscriberList } from "./subscriberHandler.js";
+import { handleSubscribersCommand as showSubscriberList } from "./subscriberHandler.js";
 import { startBroadcast, handleDirectBroadcast } from "./broadcastHandler.js";
 
 // Main admin command handler
@@ -61,7 +61,7 @@ export const handleAdminCallback = async (query) => {
         break;
         
       case ADMIN_CONFIG.CALLBACK_PREFIXES.EVENTS:
-        await showEventHistory(bot, chatId);
+        await handleDetailedStats(bot, chatId);
         break;
         
       case ADMIN_CONFIG.CALLBACK_PREFIXES.PROCESS_QUEUE:
@@ -71,8 +71,6 @@ export const handleAdminCallback = async (query) => {
       case ADMIN_CONFIG.CALLBACK_PREFIXES.RESET_AGGREGATOR:
         await resetAggregator(bot, chatId);
         break;
-        
-
         
       default:
         await bot.sendMessage(chatId, "❌ Unknown admin action.");
@@ -142,4 +140,4 @@ export default {
   handleCleanupCommand,
   handleQueueCommand,
   handleBroadcastCommand
-}; 
+};
