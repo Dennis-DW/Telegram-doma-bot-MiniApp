@@ -6,7 +6,7 @@ export const handleMiniAppCommand = async (msg) => {
   const chatId = msg.chat.id;
   
   try {
-    const miniAppUrl = process.env.MINI_APP_URL || 'https://your-mini-app.vercel.app';
+    const miniAppUrl = process.env.MINI_APP_URL || 'https://telegram-doma-bot-mini-app.vercel.app/';
     
     const keyboard = {
       inline_keyboard: [
