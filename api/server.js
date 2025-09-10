@@ -21,7 +21,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/events', eventRoutes);
 app.use('/api/subscription', subscriptionRoutes);
-app.use('/', systemRoutes); // System routes at root level
+app.use('/', systemRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler);

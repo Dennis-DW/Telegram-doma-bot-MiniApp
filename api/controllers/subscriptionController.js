@@ -10,23 +10,42 @@ import {
 import { sendSuccessResponse, sendErrorResponse } from '../utils/responseUtils.js';
 import { API_CONFIG } from '../config/index.js';
 
+// Cache for subscription status to reduce API calls
+const statusCache = new Map();
+const CACHE_DURATION = 5000; // 5 seconds
+
 // Get subscription status
 export const getSubscriptionStatus = async (req, res) => {
   try {
     const { telegramId } = req.query;
     
     if (telegramId) {
+      // Check cache first
+      const cacheKey = `status_${telegramId}`;
+      const cached = statusCache.get(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+        return sendSuccessResponse(res, cached.data, 'Subscription status retrieved from cache');
+      }
+      
       // Get status for specific user
       const status = getSubscriptionStatusFromStorage(telegramId);
+      
+      // Cache the result
+      statusCache.set(cacheKey, {
+        data: status,
+        timestamp: Date.now()
+      });
+      
       sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
     } else {
       // Get general status
       const subscribers = getSubscribers();
       const status = {
         subscribed: false,
-      totalSubscribers: subscribers.length,
-      lastUpdated: new Date().toISOString()
-    };
+        totalSubscribers: subscribers.length,
+        lastUpdated: new Date().toISOString()
+      };
       sendSuccessResponse(res, status, 'Subscription status retrieved successfully');
     }
   } catch (error) {
@@ -45,6 +64,10 @@ export const subscribeUser = async (req, res) => {
     }
     
     addSubscriber(telegramId);
+    
+    // Clear cache for this user
+    const cacheKey = `status_${telegramId}`;
+    statusCache.delete(cacheKey);
     
     // Get updated status
     const status = getSubscriptionStatusFromStorage(telegramId);
@@ -67,12 +90,12 @@ export const unsubscribeUser = async (req, res) => {
     
     removeSubscriber(telegramId);
     
+    // Clear cache for this user
+    const cacheKey = `status_${telegramId}`;
+    statusCache.delete(cacheKey);
+    
     // Get updated status
-    const status = {
-      subscribed: false,
-      totalSubscribers: getSubscribers().length,
-      lastUpdated: new Date().toISOString()
-    };
+    const status = getSubscriptionStatusFromStorage(telegramId);
     
     sendSuccessResponse(res, status, API_CONFIG.MESSAGES.SUCCESS.UNSUBSCRIBED);
   } catch (error) {
@@ -96,6 +119,10 @@ export const updateSubscriptionSettings = async (req, res) => {
     
     // Update user settings
     const updatedSettings = updateUserSettings(telegramId, settings);
+    
+    // Clear cache for this user
+    const cacheKey = `status_${telegramId}`;
+    statusCache.delete(cacheKey);
     
     // Get updated status
     const status = getSubscriptionStatusFromStorage(telegramId);

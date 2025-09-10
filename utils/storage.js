@@ -7,7 +7,8 @@ import eventAggregator from "./eventAggregator.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = path.join(__dirname, "db.json");
+const EVENTS_DB_PATH = path.join(__dirname, "events.json");
+const USERS_DB_PATH = path.join(__dirname, "users.json");
 
 // Configuration for event cleanup
 const EVENT_RETENTION_DAYS = 10; // Keep events for 10 days
@@ -23,30 +24,44 @@ const customStringify = (obj) => {
   }, 2);
 };
 
-function loadDB() {
-  if (!fs.existsSync(DB_PATH)) {
+function loadEventsDB() {
+  if (!fs.existsSync(EVENTS_DB_PATH)) {
+    return { events: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(EVENTS_DB_PATH, "utf-8"));
+  } catch (e) {
+    console.error("⚠️ Events DB corrupted, resetting...", e);
+    return { events: [] };
+  }
+}
+
+function saveEventsDB(data) {
+  fs.writeFileSync(EVENTS_DB_PATH, customStringify(data));
+}
+
+function loadUsersDB() {
+  if (!fs.existsSync(USERS_DB_PATH)) {
     return { 
       subscribers: [], 
-      events: [], 
       userSettings: {},
       lastCleanup: null
     };
   }
   try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+    return JSON.parse(fs.readFileSync(USERS_DB_PATH, "utf-8"));
   } catch (e) {
-    console.error("⚠️ DB corrupted, resetting...", e);
+    console.error("⚠️ Users DB corrupted, resetting...", e);
     return { 
       subscribers: [], 
-      events: [], 
       userSettings: {},
       lastCleanup: null
     };
   }
 }
 
-function saveDB(data) {
-  fs.writeFileSync(DB_PATH, customStringify(data));
+function saveUsersDB(data) {
+  fs.writeFileSync(USERS_DB_PATH, customStringify(data));
 }
 
 // Clean up old events
@@ -69,14 +84,19 @@ function limitEvents(events) {
 }
 
 export function getSubscribers() {
-  const db = loadDB();
+  const db = loadUsersDB();
   return db.subscribers;
 }
 
 export function addSubscriber(chatId) {
-  const db = loadDB();
-  if (!db.subscribers.includes(chatId)) {
-    db.subscribers.push(chatId);
+  const db = loadUsersDB();
+  const chatIdStr = String(chatId);
+  
+  // Check if subscriber already exists (using string comparison)
+  const exists = db.subscribers.some(sub => String(sub) === chatIdStr);
+  
+  if (!exists) {
+    db.subscribers.push(chatIdStr);
     
     // Initialize userSettings if it doesn't exist
     if (!db.userSettings) {
@@ -84,8 +104,8 @@ export function addSubscriber(chatId) {
     }
     
     // Initialize default settings for new subscriber
-    if (!db.userSettings[chatId]) {
-      db.userSettings[chatId] = {
+    if (!db.userSettings[chatIdStr]) {
+      db.userSettings[chatIdStr] = {
         notifications: true,
         eventTypes: {
           minting: true,
@@ -105,39 +125,48 @@ export function addSubscriber(chatId) {
       };
     }
     
-    saveDB(db);
-    console.log(`✅ Added subscriber: ${chatId}`);
+    saveUsersDB(db);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Added subscriber: ${chatIdStr}`);
+    }
   }
 }
 
 export function removeSubscriber(chatId) {
-  const db = loadDB();
-  db.subscribers = db.subscribers.filter((id) => id !== chatId);
+  const db = loadUsersDB();
+  const chatIdStr = String(chatId);
+  
+  // Remove subscriber using string comparison
+  db.subscribers = db.subscribers.filter((id) => String(id) !== chatIdStr);
   
   // Remove user settings
-  if (db.userSettings && db.userSettings[chatId]) {
-    delete db.userSettings[chatId];
+  if (db.userSettings && db.userSettings[chatIdStr]) {
+    delete db.userSettings[chatIdStr];
   }
   
-  saveDB(db);
-  console.log(`❌ Removed subscriber: ${chatId}`);
+  saveUsersDB(db);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`❌ Removed subscriber: ${chatIdStr}`);
+  }
 }
 
 export function getUserSettings(chatId) {
-  const db = loadDB();
-  return db.userSettings && db.userSettings[chatId] ? db.userSettings[chatId] : null;
+  const db = loadUsersDB();
+  const chatIdStr = String(chatId);
+  return db.userSettings && db.userSettings[chatIdStr] ? db.userSettings[chatIdStr] : null;
 }
 
 export function updateUserSettings(chatId, settings) {
-  const db = loadDB();
+  const db = loadUsersDB();
+  const chatIdStr = String(chatId);
   
   // Initialize userSettings if it doesn't exist
   if (!db.userSettings) {
     db.userSettings = {};
   }
   
-  if (!db.userSettings[chatId]) {
-    db.userSettings[chatId] = {
+  if (!db.userSettings[chatIdStr]) {
+    db.userSettings[chatIdStr] = {
       notifications: true,
       eventTypes: {
         minting: true,
@@ -156,19 +185,20 @@ export function updateUserSettings(chatId, settings) {
     };
   }
   
-  db.userSettings[chatId] = {
-    ...db.userSettings[chatId],
+  db.userSettings[chatIdStr] = {
+    ...db.userSettings[chatIdStr],
     ...settings,
     updatedAt: new Date().toISOString()
   };
   
-  saveDB(db);
-  console.log(`✅ Updated settings for user: ${chatId}`);
-  return db.userSettings[chatId];
+  saveUsersDB(db);
+  console.log(`✅ Updated settings for user: ${chatIdStr}`);
+  return db.userSettings[chatIdStr];
 }
 
 export function saveEvent(event) {
-  const db = loadDB();
+  const eventsDB = loadEventsDB();
+  const usersDB = loadUsersDB();
   
   // Add timestamp if not present
   if (!event.timestamp) {
@@ -176,37 +206,38 @@ export function saveEvent(event) {
   }
   
   // Add event to database
-  db.events.push(event);
+  eventsDB.events.push(event);
   
   // Clean up old events periodically
   const now = new Date();
-  const lastCleanup = db.lastCleanup ? new Date(db.lastCleanup) : null;
+  const lastCleanup = usersDB.lastCleanup ? new Date(usersDB.lastCleanup) : null;
   
   if (!lastCleanup || (now - lastCleanup) > (24 * 60 * 60 * 1000)) { // Cleanup once per day
-    db.events = cleanupOldEvents(db.events);
-  db.events = limitEvents(db.events);
-    db.lastCleanup = now.toISOString();
-    console.log(`🧹 Daily cleanup completed. Events: ${db.events.length}`);
+    eventsDB.events = cleanupOldEvents(eventsDB.events);
+    eventsDB.events = limitEvents(eventsDB.events);
+    usersDB.lastCleanup = now.toISOString();
+    console.log(`🧹 Daily cleanup completed. Events: ${eventsDB.events.length}`);
   }
   
   // Save to database
-  saveDB(db);
+  saveEventsDB(eventsDB);
+  saveUsersDB(usersDB);
   
   console.log(`💾 Event saved to database: ${event.type}`);
-  console.log(`📊 Total events in DB: ${db.events.length}`);
-  console.log(`👥 Total subscribers: ${db.subscribers.length}`);
+  console.log(`📊 Total events in DB: ${eventsDB.events.length}`);
+  console.log(`👥 Total subscribers: ${usersDB.subscribers.length}`);
 
   // 🚀 Add event to aggregator for professional broadcasting
   eventAggregator.addEvent(event);
 }
 
 export function getEvents() {
-  const db = loadDB();
+  const db = loadEventsDB();
   return db.events;
 }
 
 export function getEventsByType(eventType, limit = 50, page = 1) {
-  const db = loadDB();
+  const db = loadEventsDB();
   const events = db.events.filter(event => event.type === eventType);
   
   const startIndex = (page - 1) * limit;
@@ -222,22 +253,24 @@ export function getEventsByType(eventType, limit = 50, page = 1) {
 }
 
 export function getRecentEvents(limit = 10) {
-  const db = loadDB();
+  const db = loadEventsDB();
   return db.events.slice(-limit).reverse();
 }
 
 // Clean up events manually (can be called periodically)
 export function cleanupEvents() {
-  const db = loadDB();
-  const originalCount = db.events.length;
+  const eventsDB = loadEventsDB();
+  const usersDB = loadUsersDB();
+  const originalCount = eventsDB.events.length;
   
-  db.events = cleanupOldEvents(db.events);
-  db.events = limitEvents(db.events);
+  eventsDB.events = cleanupOldEvents(eventsDB.events);
+  eventsDB.events = limitEvents(eventsDB.events);
   
-  const removedCount = originalCount - db.events.length;
+  const removedCount = originalCount - eventsDB.events.length;
   if (removedCount > 0) {
-    db.lastCleanup = new Date().toISOString();
-    saveDB(db);
+    usersDB.lastCleanup = new Date().toISOString();
+    saveEventsDB(eventsDB);
+    saveUsersDB(usersDB);
     console.log(`🧹 Cleaned up ${removedCount} old events`);
   }
   
@@ -246,9 +279,10 @@ export function cleanupEvents() {
 
 // Get event statistics with improved calculations
 export function getEventStats() {
-  const db = loadDB();
-  const events = db.events;
-  const subscribers = db.subscribers;
+  const eventsDB = loadEventsDB();
+  const usersDB = loadUsersDB();
+  const events = eventsDB.events;
+  const subscribers = usersDB.subscribers;
   
   // Calculate today's events
   const today = new Date();
@@ -298,9 +332,11 @@ export function getEventStats() {
 
 // Get subscription status for a specific user
 export function getSubscriptionStatus(telegramId) {
-  const db = loadDB();
-  const isSubscribed = db.subscribers.includes(telegramId);
-  const userSettings = db.userSettings && db.userSettings[telegramId] ? db.userSettings[telegramId] : null;
+  const db = loadUsersDB();
+  // Convert telegramId to string for comparison since it might come as number or string
+  const telegramIdStr = String(telegramId);
+  const isSubscribed = db.subscribers.some(sub => String(sub) === telegramIdStr);
+  const userSettings = db.userSettings && db.userSettings[telegramIdStr] ? db.userSettings[telegramIdStr] : null;
   
   return {
     subscribed: isSubscribed,

@@ -11,6 +11,7 @@ This is a **full-stack blockchain monitoring system** consisting of:
 3. **🔗 API Server** - RESTful backend for mini-app communication
 4. **📊 Event Aggregator** - Intelligent event batching and formatting
 5. **💾 Storage System** - Persistent data management with automatic cleanup
+6. **🔧 Redux State Management** - Centralized state management for the mini-app
 
 ## 🏗️ **System Architecture**
 
@@ -23,14 +24,14 @@ This is a **full-stack blockchain monitoring system** consisting of:
                               │                        │
                               ▼                        ▼
                        ┌─────────────────┐    ┌─────────────────┐
-                       │   API Server    │    │   Event         │
-                       │   (RESTful)     │◄───│   Aggregator    │
+                       │   API Server    │    │   Redux Store   │
+                       │   (RESTful)     │◄───│   (State Mgmt)  │
                        └─────────────────┘    └─────────────────┘
                               │                        │
                               ▼                        ▼
                        ┌─────────────────┐    ┌─────────────────┐
-                       │   Storage       │    │   Notification  │
-                       │   (JSON DB)     │    │   System        │
+                       │   Storage       │    │   Event         │
+                       │   (JSON DB)     │    │   Aggregator    │
                        └─────────────────┘    └─────────────────┘
 ```
 
@@ -107,12 +108,61 @@ The bot features dynamic inline buttons that change based on user subscription s
 - **Search & Filter** - Find specific events
 - **Pagination** - Navigate through large event lists
 
-### **Mini-App Features**
+### **Advanced Features**
 - **Mobile responsive design** - Optimized for all screen sizes
 - **Real-time subscription management** - Subscribe/unsubscribe directly
 - **Settings persistence** - User preferences saved and applied immediately
 - **Event dashboard** - Visual overview of all event types and statistics
 - **Telegram integration** - Seamless communication with the bot
+- **Explorer integration** - View transactions on blockchain explorers with fallback URLs
+- **Redux state management** - Centralized state management for better performance
+
+## 🔧 **Technical Implementation**
+
+### **Frontend (Mini-App)**
+- **React 18** - Modern React with hooks and functional components
+- **Redux Toolkit** - Centralized state management
+- **React Router** - Client-side routing
+- **Tailwind CSS** - Utility-first CSS framework
+- **Vite** - Fast build tool and development server
+- **Telegram WebApp SDK** - Native Telegram integration
+
+### **Backend (API Server)**
+- **Node.js** - JavaScript runtime
+- **Express.js** - Web framework
+- **Web3.js** - Blockchain interaction
+- **Ethers.js** - Ethereum utilities
+- **JSON Storage** - Lightweight data persistence
+
+### **State Management (Redux)**
+```javascript
+// Store Structure
+{
+  subscription: {
+    status: { subscribed: boolean, totalSubscribers: number },
+    settings: { eventTypes: object, notifications: boolean },
+    loading: boolean,
+    error: string | null
+  },
+  events: {
+    list: array,
+    stats: object,
+    loading: boolean,
+    error: string | null
+  },
+  ui: {
+    theme: string,
+    sidebar: boolean,
+    notifications: array
+  }
+}
+```
+
+### **Data Storage**
+- **Separated Data Files** - `events.json` and `users.json` for better performance
+- **Automatic Cleanup** - Old events automatically removed after 10 days
+- **Data Type Consistency** - All IDs stored as strings for reliable comparisons
+- **Caching System** - 5-second cache for subscription status to reduce API calls
 
 ## 🔗 **Doma Network Testnet Implementation**
 
@@ -124,15 +174,14 @@ The project is configured to work with the Doma blockchain testnet using HTTP po
 # Doma Network Configuration
 DOMA_RPC_URL=https://testnet-rpc.doma.network
 OWNERSHIP_TOKEN_ADDRESS=0x1234567890123456789012345678901234567890
-```
 
-#### **Web3 Configuration**
-```javascript
-// config/web3.js
-import Web3 from "web3";
+# Bot Configuration
+BOT_TOKEN=your_telegram_bot_token
+ADMIN_USER_ID=your_admin_user_id
 
-const domaRpcUrl = process.env.DOMA_RPC_URL;
-export const web3 = new Web3(new Web3.providers.HttpProvider(domaRpcUrl));
+# API Configuration
+API_PORT=3000
+NODE_ENV=development
 ```
 
 ### **Smart Contract Integration**
@@ -194,410 +243,131 @@ const args = parsed.args;
 const safeArgs = convertBigIntsToStrings(args);
 ```
 
-#### **Domain Expiration Tracking**
-```javascript
-// Track domain expiration times
-const domainExpirations = new Map();
-
-// Check expiration every minute
-const startExpirationChecker = () => {
-  expirationChecker = setInterval(() => {
-    const now = Math.floor(Date.now() / 1000);
-    // Check for expired domains and create DomainExpired events
-  }, 60000);
-};
-```
-
-### **Event Data Structure**
-
-#### **Event Object Format**
-```javascript
-const eventData = {
-  type: eventName,
-  args: safeArgs,
-  txHash: log.transactionHash,
-  blockNumber: log.blockNumber,
-  logIndex: log.logIndex,
-  timestamp: new Date().toISOString(),
-  message: formattedMessage
-};
-```
-
-#### **Event-Specific Handling**
-```javascript
-// Example: OwnershipTokenMinted
-case "OwnershipTokenMinted":
-  // args: [tokenId, registrarIanaId, to, sld, tld, expiresAt, correlationId]
-  const tokenId = safeArgs[0];
-  const to = safeArgs[2];
-  const sld = safeArgs[3];
-  const tld = safeArgs[4];
-  const expiresAt = safeArgs[5];
-  
-  eventData.message = `✨ Domain Minted!\nToken ID: ${tokenId}\nOwner: ${to}\nSLD: ${sld}.${tld}\nExpires: ${new Date(Number(expiresAt) * 1000).toLocaleString()}`;
-  break;
-```
-
-### **Connection Management**
-
-#### **Startup Process**
-```javascript
-export const startDomaListeners = async () => {
-  // 1. Check connection status
-  const isConnected = await web3.eth.net.isListening();
-  
-  // 2. Get current block number
-  const blockNumber = await web3.eth.getBlockNumber();
-  
-  // 3. Initialize last processed block
-  lastProcessedBlock = Number(blockNumber) - 1;
-  
-  // 4. Start polling and expiration checker
-  startEventPolling();
-  startExpirationChecker();
-};
-```
-
-#### **Cleanup Process**
-```javascript
-export const stopDomaListeners = async () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    clearInterval(expirationChecker);
-    pollingInterval = null;
-    expirationChecker = null;
-  }
-};
-```
-
-### **Error Handling**
-
-#### **BigInt Serialization**
-```javascript
-// Custom JSON serializer to handle BigInt
-const customStringify = (obj) => {
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'bigint') {
-      return value.toString();
-    }
-    return value;
-  }, 2);
-};
-```
-
-#### **Event Logging**
-```javascript
-// Enhanced console logging with formatting
-console.log("=".repeat(60));
-console.log(`📢 BLOCKCHAIN EVENT DETECTED: ${eventName.toUpperCase()}`);
-console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
-console.log(`🔗 Transaction Hash: ${log.transactionHash}`);
-console.log(`📦 Block Number: ${log.blockNumber}`);
-console.log("=".repeat(60));
-```
-
-### **Testnet Features**
-
-#### **Implemented Features**
-- **HTTP Polling**: 10-second intervals for event detection
-- **Block Tracking**: Prevents duplicate event processing
-- **Expiration Monitoring**: Automatic domain expiration detection
-- **Event Parsing**: Uses ethers.js for reliable event parsing
-- **BigInt Handling**: Safe serialization of blockchain data
-- **Comprehensive Logging**: Detailed event information
-
-#### **Event Broadcasting**
-```javascript
-// Save event (automatically broadcasts to subscribers)
-saveEvent(eventData);
-```
-
-### **Configuration**
-
-#### **Environment Setup**
-```bash
-# Required environment variables
-DOMA_RPC_URL=https://testnet-rpc.doma.network
-OWNERSHIP_TOKEN_ADDRESS=0x1234567890123456789012345678901234567890
-```
-
-#### **Polling Configuration**
-- **Event Polling**: Every 10 seconds
-- **Expiration Check**: Every 60 seconds
-- **Block Range**: From last processed block to current block
-- **Error Handling**: Graceful degradation on connection issues
-
-This implementation provides a robust, production-ready system for monitoring Doma blockchain events on testnet with comprehensive error handling and detailed logging.
-
-## 🔗 **API Structure**
-
-### **Base URL**
-```
-http://localhost:3001/api
-```
-
-### **Endpoints**
-
-#### **Subscription Management**
-```
-GET    /subscription/status
-POST   /subscription/subscribe
-POST   /subscription/unsubscribe
-```
-
-#### **User Settings**
-```
-GET    /settings
-PUT    /settings
-POST   /settings/clear-bot-action
-```
-
-#### **Events**
-```
-GET    /events
-GET    /events/stats
-GET    /events/filtered
-```
-
-#### **Admin (Protected)**
-```
-GET    /admin/subscribers
-POST   /admin/broadcast
-GET    /admin/stats
-```
-
-### **API Response Format**
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Operation completed successfully",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
-
-### **Error Response Format**
-```json
-{
-  "success": false,
-  "error": "Error description",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
-
-## 📁 **Project Structure**
-
-```
-doma-bot/
-├── 📁 commands/                 # Bot command handlers
-│   ├── 📁 constants/           # Command constants and keyboards
-│   ├── 📁 handlers/            # Command and callback handlers
-│   ├── start.js               # Welcome command
-│   ├── subscribe.js           # Subscription command
-│   ├── unsubscribe.js         # Unsubscription command
-│   ├── admin.js               # Admin commands
-│   └── miniapp.js             # Mini-app integration
-├── 📁 config/                  # Configuration files
-│   └── bot.js                 # Bot configuration
-├── 📁 listeners/               # Blockchain event listeners
-│   └── domaEvents.js          # Doma contract events
-├── 📁 utils/                   # Utility functions
-│   ├── storage.js             # Database operations
-│   ├── eventAggregator.js     # Event batching
-│   ├── broadcast.js           # Message formatting
-│   └── dbCleanup.js           # Database maintenance
-├── 📁 api/                     # API server
-│   ├── 📁 routes/             # API routes
-│   ├── 📁 middleware/         # API middleware
-│   └── server.js              # API server
-├── 📁 mini-app/                # React mini-app
-│   ├── 📁 src/
-│   │   ├── 📁 components/     # React components
-│   │   ├── 📁 hooks/          # Custom hooks
-│   │   ├── 📁 services/       # API services
-│   │   └── 📁 pages/          # App pages
-│   └── package.json
-├── 📁 abis/                    # Contract ABIs
-├── index.js                   # Main bot entry point
-├── api-server.js              # API server entry point
-└── package.json
-```
-
-## 🛠️ **Installation & Setup**
+## 🚀 **Quick Start**
 
 ### **Prerequisites**
-- Node.js 18+
+- Node.js 18+ 
 - npm or yarn
 - Telegram Bot Token
-- Web3 provider (for blockchain events)
+- Doma Network RPC URL
 
-### **1. Clone & Install**
+### **Installation**
+
+1. **Clone the repository**
 ```bash
 git clone <repository-url>
 cd doma-bot
-npm install
-cd mini-app && npm install && cd ..
 ```
 
-### **2. Environment Configuration**
-Create `.env` file in root directory:
-```env
-# Bot Configuration
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-WEB3_PROVIDER_URL=your_web3_provider_url
-CONTRACT_ADDRESS=your_contract_address
-
-# API Configuration
-API_PORT=3001
-API_BASE_URL=http://localhost:3001
-
-# URLs
-EXPLORER_BASE_URL=https://explorer.example.com
-MINI_APP_URL=https://your-mini-app-url.com
-
-# Database
-DB_PATH=./utils/db.json
-```
-
-### **3. Start Services**
+2. **Install dependencies**
 ```bash
-# Start the bot (main service)
+npm install
+cd mini-app && npm install
+```
+
+3. **Set up environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. **Start the development servers**
+```bash
+# Start the main bot and API server
 npm run dev
 
-# Start the API server (in another terminal)
-npm run dev:api
-
-# Start the mini-app (in another terminal)
+# In another terminal, start the mini-app
 cd mini-app && npm run dev
 ```
 
-## 🔧 **Technical Features**
+### **Production Deployment**
 
-### **Event Aggregation**
-- **Batching System** - Groups events for efficient delivery
-- **30-minute Intervals** - Sends aggregated notifications
-- **Smart Filtering** - Respects user preferences
-- **Duplicate Prevention** - Avoids sending same events multiple times
-
-### **User Management**
-- **Subscription Tracking** - Manages user subscriptions
-- **Settings Persistence** - Saves user preferences
-- **Cross-Platform Sync** - Bot and mini-app stay synchronized
-- **Admin Controls** - Comprehensive admin management
-
-### **Database System**
-- **JSON-based Storage** - Simple, reliable data storage
-- **Automatic Cleanup** - Removes old events automatically
-- **Data Integrity** - Handles BigInt and complex data types
-- **Backup System** - Automatic data backup
-
-### **Error Handling**
-- **Graceful Degradation** - Continues working on partial failures
-- **Retry Mechanisms** - Automatic retry on failures
-- **Logging System** - Comprehensive error logging
-- **User Feedback** - Clear error messages to users
-
-## 🔄 **Synchronization System**
-
-The system maintains perfect synchronization between the bot and mini-app:
-
-### **Bot → Mini-App Sync**
-- Bot actions update user settings
-- Mini-app polls for changes
-- Automatic UI updates
-- User notifications for conflicts
-
-### **Mini-App → Bot Sync**
-- Mini-app actions send data to bot
-- Bot processes and confirms actions
-- Real-time status updates
-- Seamless user experience
-
-### **Conflict Resolution**
-- Timestamp-based resolution
-- Source tracking (bot vs mini-app)
-- User notifications for conflicts
-- Automatic state reconciliation
-
-## 📊 **Monitoring & Analytics**
-
-### **System Statistics**
-- Total subscribers count
-- Event processing rates
-- API response times
-- Error rates and types
-
-### **User Analytics**
-- Subscription trends
-- Event type preferences
-- User engagement metrics
-- Platform usage patterns
-
-### **Performance Metrics**
-- Database performance
-- API response times
-- Bot message delivery rates
-- Mini-app load times
-
-## 🔒 **Security Features**
-
-### **API Security**
-- Input validation
-- Rate limiting
-- Error message sanitization
-- CORS configuration
-
-### **Bot Security**
-- Admin command protection
-- User input validation
-- Secure callback handling
-- Message sanitization
-
-### **Data Protection**
-- Secure data storage
-- Access control
-- Data encryption
-- Backup security
-
-## 🚀 **Deployment**
-
-### **Production Setup**
-1. **Environment Variables** - Configure production settings
-2. **Database Setup** - Ensure proper database configuration
-3. **SSL Certificate** - Set up HTTPS for mini-app
-4. **Domain Configuration** - Configure custom domains
-5. **Monitoring** - Set up logging and monitoring
-
-### **Scaling Considerations**
-- **Load Balancing** - For high-traffic scenarios
-- **Database Optimization** - For large datasets
-- **Caching** - For improved performance
-- **CDN** - For static assets
-
-## 🐛 **Troubleshooting**
-
-### **Common Issues**
-1. **Bot Not Responding** - Check token and network
-2. **API Errors** - Verify environment variables
-3. **Mini-App Issues** - Check API connectivity
-4. **Event Notifications** - Verify contract events
-
-### **Debug Mode**
+1. **Build the mini-app**
 ```bash
-# Enable debug logging
-DEBUG=true npm run dev
+cd mini-app && npm run build
 ```
 
-### **Log Files**
-- Bot logs: Console output
-- API logs: Console output
-- Mini-app logs: Browser console
+2. **Start the production server**
+```bash
+npm start
+```
+
+## 📊 **API Endpoints**
+
+### **Health & System**
+- `GET /health` - Health check
+- `GET /system/info` - System information
+- `GET /docs` - API documentation
+
+### **Events**
+- `GET /api/events` - Get all events with pagination
+- `GET /api/events/:type` - Get events by type
+- `GET /api/events/recent` - Get recent events
+- `GET /api/events/stats` - Get event statistics
+
+### **Subscriptions**
+- `GET /api/subscription/status` - Get subscription status
+- `POST /api/subscription/subscribe` - Subscribe user
+- `POST /api/subscription/unsubscribe` - Unsubscribe user
+- `PUT /api/subscription/settings` - Update user settings
+- `GET /api/subscription/settings` - Get user settings
+- `GET /api/subscription/subscribers` - Get all subscribers (admin)
+
+## 🔧 **Development**
+
+### **Code Structure**
+```
+doma-bot/
+├── api/                    # API server
+│   ├── controllers/       # Route controllers
+│   ├── middleware/        # Express middleware
+│   ├── routes/           # API routes
+│   └── utils/            # API utilities
+├── commands/             # Bot commands
+│   ├── admin/           # Admin commands
+│   └── handlers/        # Command handlers
+├── config/              # Configuration files
+├── listeners/           # Blockchain event listeners
+├── mini-app/           # React mini-app
+│   ├── src/
+│   │   ├── components/  # React components
+│   │   ├── hooks/       # Custom hooks
+│   │   ├── services/    # API services
+│   │   ├── store/       # Redux store
+│   │   └── utils/       # Utilities
+│   └── public/          # Static assets
+└── utils/               # Shared utilities
+```
+
+### **Available Scripts**
+- `npm run dev` - Start development server
+- `npm run start` - Start production server
+- `npm run build` - Build mini-app for production
+- `npm run clean` - Clean build artifacts
+
+
+### **Code Quality & Performance**
+- **Console Log Management** - Debug logs only in development mode
+- **Error Handling** - Enhanced error handling with fallback mechanisms
+- **Caching System** - 5-second cache for subscription status to reduce API calls
+
+### **User Experience**
+- **Explorer Integration** - Robust blockchain explorer links with fallback URLs
+- **Dynamic UI States** - Subscribe/Unsubscribe buttons change based on status
+- **Real-time Updates** - 30-second refresh intervals for subscription status
+- **Mobile Optimization** - Responsive design for all screen sizes
+
+### **Data Management**
+- **Separated Storage** - Split `db.json` into `events.json` and `users.json`
+- **Data Type Consistency** - All IDs stored as strings for reliable comparisons
+- **Automatic Cleanup** - Old events automatically removed after 10 days
+- **Redux State Management** - Centralized state management for better performance
+
 
 
 ## 📄 **License**
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
+This project is licensed under the MIT License 
 ---
 
 **Built with ❤️ for the Doma blockchain community** 

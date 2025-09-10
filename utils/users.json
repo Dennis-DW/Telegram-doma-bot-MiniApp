@@ -1,0 +1,26 @@
+{
+  "subscribers": [
+    "1802348890"
+  ],
+  "userSettings": {
+    "1802348890": {
+      "notifications": true,
+      "eventTypes": {
+        "minting": true,
+        "transfers": true,
+        "renewals": true,
+        "burning": true,
+        "locks": true,
+        "registrar": true,
+        "metadata": true,
+        "locked": true,
+        "unlocked": true,
+        "expired": true
+      },
+      "frequency": "realtime",
+      "createdAt": "2025-09-08T09:36:06.837Z",
+      "updatedAt": "2025-09-08T09:36:06.837Z"
+    }
+  },
+  "lastCleanup": "2025-09-10T03:54:42.974Z"
+}
